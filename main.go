@@ -28,7 +28,6 @@ import (
 功能：用给定的一批成语，生成符合上面的布局的组合，把符合条件的结果写入result.txt文件中
 */
 func main() {
-
 	start := time.Now()
 	var ChengYuList = []string{
 		"鞭长莫及", "不要回答", "长命百岁", "同舟共济", "争风吃醋", "争相吃瓜", "省吃俭用", "大吃一惊", "寅吃卯粮", "百家争鸣",
@@ -48,8 +47,13 @@ func main() {
 		{Head: 3, Foot: 1},
 		{Head: 3, Foot: 1},
 		{Head: 3, Foot: 2},
-		//{Head: 4, Foot: 2},
+		{Head: 4, Foot: 2},
+		{Head: 4, Foot: 1},
 	}
+
+	//demo := []string{"不一而足", "一往无前", "无为而治", "而立之年", "天之骄子", "君子好逑", "心旷神怡"}
+	//fmt.Println("check: ", chengyu.Check(demo, blankSetting))
+	//return
 	fmt.Printf("成语列表(总数：%d)： %v\n", len(ChengYuList), ChengYuList)
 	fmt.Println("空白处配置： ", blankSetting)
 
@@ -59,12 +63,14 @@ func main() {
 		chengYuMap[item] = true
 	}
 
+	f, _ := os.OpenFile("result.txt", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	_, _ = fmt.Fprintln(f, "")
 	// 递归处理，开始生成成语序列并判断
 	result := [][]string{}
-	chengyu.GenerateResult(chengYuMap, blankSetting, 0, []string{}, &result)
+	chengyu.GenerateResult(chengYuMap, blankSetting, len(blankSetting)+1, 0, []string{}, &result)
 
 	//每次执行前，先清空文件内容
-	f, _ := os.OpenFile("result.txt", os.O_WRONLY|os.O_TRUNC, 0600)
+	f, _ = os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	defer f.Close()
 	_, _ = fmt.Fprintln(f, result)
 
