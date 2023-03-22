@@ -1,0 +1,9 @@
+/vendor
+composer.lock
+
+.env
+.DS_Store
+.idea/*
+.settings/
+.settings/*
+result.txt
