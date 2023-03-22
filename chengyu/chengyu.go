@@ -2,6 +2,8 @@ package chengyu
 
 import (
 	"errors"
+	"fmt"
+	"os"
 )
 
 type Blank struct {
@@ -9,6 +11,42 @@ type Blank struct {
 	Foot int `json:"foot"`
 }
 
+func GenerateChengYu(chengYuMap map[string]bool, blankSetting []Blank, depth int, selectedOnes []string) {
+	if depth == len(blankSetting)+1 {
+		// 已填好所有空白处配置，判断所选成语序列是否符合条件
+		if ok := Check(selectedOnes, blankSetting); ok {
+			//fmt.Println("answer: ", selectedOnes)
+			// 打开文件以进行附加写入，如果文件不存在，则创建它
+			file, err := os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				fmt.Println("Error opening file:", err)
+				return
+			}
+			defer file.Close()
+
+			// 写入字符串到文件中
+			_, err = fmt.Fprintln(file, selectedOnes)
+			if err != nil {
+				fmt.Println("Error writing to file:", err)
+				return
+			}
+		}
+		return
+	}
+	// 处理当前递归层
+	for c := range chengYuMap {
+		if depth > 0 {
+			blank := blankSetting[depth-1]
+			cell1, _ := GetChengyuPosStr(blank.Head-1, blank.Head, selectedOnes[depth-1])
+			cell2, _ := GetChengyuPosStr(blank.Foot-1, blank.Foot, c)
+			if cell1 != cell2 {
+				continue
+			}
+		}
+		// 递归处理下一个空白处
+		GenerateChengYu(chengYuMap, blankSetting, depth+1, append(selectedOnes, c))
+	}
+}
 
 func GetChengyuPosStr(begin, end int, item string) (string, error) {
 	if begin < 0 || end > 4 || begin > end || begin+1 != end {
