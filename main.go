@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/chengyu/chengyu"
+	"os"
 	"time"
 )
 
@@ -47,6 +48,7 @@ func main() {
 		{Head: 3, Foot: 1},
 		{Head: 3, Foot: 1},
 		{Head: 3, Foot: 2},
+		//{Head: 4, Foot: 2},
 	}
 	fmt.Printf("成语列表(总数：%d)： %v\n", len(ChengYuList), ChengYuList)
 	fmt.Println("空白处配置： ", blankSetting)
@@ -58,7 +60,13 @@ func main() {
 	}
 
 	// 递归处理，开始生成成语序列并判断
-	chengyu.GenerateChengYu(chengYuMap, blankSetting, 0, []string{})
+	result := [][]string{}
+	chengyu.GenerateResult(chengYuMap, blankSetting, 0, []string{}, &result)
+
+	//每次执行前，先清空文件内容
+	f, _ := os.OpenFile("result.txt", os.O_WRONLY|os.O_TRUNC, 0600)
+	defer f.Close()
+	_, _ = fmt.Fprintln(f, result)
 
 	elapsed := time.Since(start)
 	fmt.Println("该函数执行完成耗时：", elapsed)

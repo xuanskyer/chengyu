@@ -2,8 +2,6 @@ package chengyu
 
 import (
 	"errors"
-	"fmt"
-	"os"
 )
 
 type Blank struct {
@@ -11,25 +9,12 @@ type Blank struct {
 	Foot int `json:"foot"`
 }
 
-func GenerateChengYu(chengYuMap map[string]bool, blankSetting []Blank, depth int, selectedOnes []string) {
+func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, depth int, selectedOnes []string, result *[][]string) {
 	if depth == len(blankSetting)+1 {
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
 		if ok := Check(selectedOnes, blankSetting); ok {
 			//fmt.Println("answer: ", selectedOnes)
-			// 打开文件以进行附加写入，如果文件不存在，则创建它
-			file, err := os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				fmt.Println("Error opening file:", err)
-				return
-			}
-			defer file.Close()
-
-			// 写入字符串到文件中
-			_, err = fmt.Fprintln(file, selectedOnes)
-			if err != nil {
-				fmt.Println("Error writing to file:", err)
-				return
-			}
+			*result = append(*result, selectedOnes)
 		}
 		return
 	}
@@ -44,7 +29,7 @@ func GenerateChengYu(chengYuMap map[string]bool, blankSetting []Blank, depth int
 			}
 		}
 		// 递归处理下一个空白处
-		GenerateChengYu(chengYuMap, blankSetting, depth+1, append(selectedOnes, c))
+		GenerateResult(chengYuMap, blankSetting, depth+1, append(selectedOnes, c), result)
 	}
 }
 
@@ -59,30 +44,6 @@ func GetChengyuPosStr(begin, end int, item string) (string, error) {
 	}
 	return string(rs[begin:end]), nil
 }
-
-func getChengyu(list []string, begin, end int, char string) ([]string, string, error) {
-	if begin < 0 || end > 4 || begin > end || begin+1 != end {
-		return list, "", errors.New("位置非法")
-	}
-	originLen := len(list)
-	for index, val := range list {
-		rs := []rune(val)
-		lth := len(rs)
-		if lth < end {
-			continue
-		}
-		if string(rs[begin:end]) == char {
-			if index+1 == originLen {
-				list = list[:originLen-1]
-			} else {
-				list = append(list[0:index], list[index+1:]...)
-			}
-			return list, val, nil
-		}
-	}
-	return list, "", errors.New("not found")
-}
-
 
 func Check(ones []string, setting []Blank) bool {
 
