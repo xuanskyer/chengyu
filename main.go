@@ -48,7 +48,9 @@ func main() {
 		{Head: 3, Foot: 1},
 		{Head: 3, Foot: 2},
 		{Head: 4, Foot: 2},
-		{Head: 4, Foot: 1},
+		{Head: 3, Foot: 1},
+		{Head: 3, Foot: 4},
+		{Head: 2, Foot: 3},
 	}
 
 	//demo := []string{"不一而足", "一往无前", "无为而治", "而立之年", "天之骄子", "君子好逑", "心旷神怡"}
