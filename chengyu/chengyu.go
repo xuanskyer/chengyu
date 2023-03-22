@@ -21,12 +21,18 @@ func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount
 		}
 		return
 	}
+	var cell1, cell2 string
+	var err1, err2 error
 	// 处理当前递归层
+	if depth > 0 {
+		blank := blankSetting[depth-1]
+		cell1, err1 = GetChengyuPosStr(blank.Head-1, blank.Head, selectedOnes[depth-1])
+	}
 	for c := range chengYuMap {
 		if depth > 0 {
 			blank := blankSetting[depth-1]
-			cell1, err1 := GetChengyuPosStr(blank.Head-1, blank.Head, selectedOnes[depth-1])
-			cell2, err2 := GetChengyuPosStr(blank.Foot-1, blank.Foot, c)
+			//cell1, err1 := GetChengyuPosStr(blank.Head-1, blank.Head, selectedOnes[depth-1])
+			cell2, err2 = GetChengyuPosStr(blank.Foot-1, blank.Foot, c)
 			if err1 != nil || err2 != nil {
 				fmt.Println(err1, err2)
 			}
