@@ -30,7 +30,7 @@ func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount
 			if err1 != nil || err2 != nil {
 				fmt.Println(err1, err2)
 			}
-			if cell1 != "" && cell2 != "" && cell1 != cell2 {
+			if cell1 == "" || cell2 == "" || cell1 != cell2 || err1 != nil || err2 != nil {
 				continue
 			}
 		}
@@ -69,7 +69,7 @@ func Check(ones []string, setting []Blank, count int) bool {
 		if e1 != nil || e2 != nil {
 			fmt.Println(e1, e2)
 		}
-		if c1 != "" && c2 != "" && c1 != c2 {
+		if c1 == "" || c2 == "" || c1 != c2 || e1 != nil || e2 != nil {
 			return false
 		}
 	}
