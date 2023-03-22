@@ -11,13 +11,17 @@ type Blank struct {
 	Foot int `json:"foot"`
 }
 
-func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string, result *[][]string) {
+func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string, result *[][]string, selectedMap map[string]bool) {
 	if depth == validCount {
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
-		if Check(selectedOnes, blankSetting, validCount) {
-			//fmt.Println("answer: ", selectedOnes)
-			*result = append(*result, selectedOnes)
-			selectedOnes = make([]string, 0)
+
+		_, ok := selectedMap[fmt.Sprint(selectedOnes)]
+		if !ok {
+			if Check(selectedOnes, blankSetting, validCount) {
+				//fmt.Println("answer: ", selectedOnes)
+				*result = append(*result, selectedOnes)
+				selectedMap[fmt.Sprint(selectedOnes)] = true
+			}
 		}
 		return
 	}
@@ -41,7 +45,7 @@ func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount
 			}
 		}
 		// 递归处理下一个空白处
-		GenerateResult(chengYuMap, blankSetting, validCount, depth+1, append(selectedOnes, c), result)
+		GenerateResult(chengYuMap, blankSetting, validCount, depth+1, append(selectedOnes, c), result, selectedMap)
 	}
 }
 func GetChengyuPosStr(begin, end int, item string) (string, error) {

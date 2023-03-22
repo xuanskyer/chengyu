@@ -67,7 +67,8 @@ func main() {
 	_, _ = fmt.Fprintln(f, "")
 	// 递归处理，开始生成成语序列并判断
 	result := [][]string{}
-	chengyu.GenerateResult(chengYuMap, blankSetting, len(blankSetting)+1, 0, []string{}, &result)
+	selectedMap := make(map[string]bool, 0)
+	chengyu.GenerateResult(chengYuMap, blankSetting, len(blankSetting)+1, 0, []string{}, &result, selectedMap)
 
 	//每次执行前，先清空文件内容
 	f, _ = os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
