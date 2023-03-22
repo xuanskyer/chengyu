@@ -70,11 +70,24 @@ func main() {
 	selectedMap := make(map[string]bool, 0)
 	chengyu.GenerateResult(chengYuMap, blankSetting, len(blankSetting)+1, 0, []string{}, &result, selectedMap)
 
+	filter := [][]string{}
+	filterMap := make(map[string]bool, 0)
+	for _, val := range result {
+		key := fmt.Sprint(val)
+		if _, ok := filterMap[key]; ok {
+			continue
+		}
+		if chengyu.Check(val, blankSetting, len(blankSetting)+1) {
+			filter = append(filter, val)
+		}
+		filterMap[key] = true
+	}
 	//每次执行前，先清空文件内容
 	f, _ = os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	defer f.Close()
-	_, _ = fmt.Fprintln(f, result)
+	_, _ = fmt.Fprintln(f, filter)
 
 	elapsed := time.Since(start)
 	fmt.Println("该函数执行完成耗时：", elapsed)
+	fmt.Println("resultCount: ", len(result), "filterCount: ", len(filter))
 }

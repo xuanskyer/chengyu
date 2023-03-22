@@ -12,16 +12,15 @@ type Blank struct {
 }
 
 func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string, result *[][]string, selectedMap map[string]bool) {
-	if depth == validCount {
+	if len(selectedOnes) == validCount || depth >= validCount {
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
-
 		_, ok := selectedMap[fmt.Sprint(selectedOnes)]
 		if !ok {
 			if Check(selectedOnes, blankSetting, validCount) {
 				//fmt.Println("answer: ", selectedOnes)
 				*result = append(*result, selectedOnes)
-				selectedMap[fmt.Sprint(selectedOnes)] = true
 			}
+			selectedMap[fmt.Sprint(selectedOnes)] = true
 		}
 		return
 	}
@@ -67,7 +66,15 @@ func GetChengyuPosStr(begin, end int, item string) (string, error) {
 
 func Check(ones []string, setting []Blank, count int) bool {
 
-	if len(ones) != count {
+	lengOnes := len(ones)
+	if lengOnes != count {
+		return false
+	}
+	onesMap := make(map[string]bool, 0)
+	for _, one := range ones {
+		onesMap[one] = true
+	}
+	if len(onesMap) != lengOnes {
 		return false
 	}
 	var c1, c2 string
