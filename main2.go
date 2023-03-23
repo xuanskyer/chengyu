@@ -178,7 +178,7 @@ func main() {
 	elapsed := time.Since(start)
 	fmt.Println("结果示例：")
 	for index, one := range result {
-		if index < 3 {
+		if index < 2 {
 			printResult2Table(one, sortedCyPos)
 			fmt.Println("\n")
 		}
