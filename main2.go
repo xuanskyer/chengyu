@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/chengyu/chengyu"
 	"os"
@@ -100,6 +101,8 @@ func main() {
 		{HeadUseCyIndex: 2, FootUseCyIndex: 3, Head: 3, Foot: 1},
 		{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 3, Foot: 2},
 	}
+	//v2Setting, _ := table2Setting(table)
+
 	isValidTable := IsValidTemplate(table)
 	if !isValidTable {
 		fmt.Println("表格模板非法！")
@@ -111,7 +114,6 @@ func main() {
 	allLineCY := []ChengYu{}
 	allColCY := []ChengYu{}
 	for index, item := range table {
-		fmt.Println(item)
 		cy := getChengYu(index, item, false)
 		if len(cy) > 0 {
 			allLineCY = append(allLineCY, cy...)
@@ -120,7 +122,6 @@ func main() {
 	for i := 0; i < MaxY; i++ {
 		column, _ := getSliceXN(table, i)
 		cyCol := getChengYu(i, column, true)
-		fmt.Println("列： ", i, "column: ", column, "成语： ", cyCol)
 		if len(cyCol) > 0 {
 			allColCY = append(allColCY, cyCol...)
 		}
@@ -140,7 +141,7 @@ func main() {
 		fmt.Println(index, item)
 	}
 	fmt.Printf("成语列表(总数：%d)： %v\n", len(ChengYuList), ChengYuList)
-	fmt.Println("空白处配置： ", v2Setting)
+	fmt.Printf("空白处配置：%+v ", v2Setting)
 
 	// 使用 map 存储成语列表，方便去重
 	chengYuMap := make(map[string]bool)
@@ -247,4 +248,85 @@ func getChengYu(n int, slice []int, fixLine bool) []ChengYu {
 		}
 	}
 	return cyList
+}
+
+func table2Setting(table [][]int) ([]chengyu.Blank, error) {
+	setting := []chengyu.Blank{}
+	allLineCY := []ChengYu{}
+	allColCY := []ChengYu{}
+	for index, item := range table {
+		cy := getChengYu(index, item, false)
+		if len(cy) > 0 {
+			allLineCY = append(allLineCY, cy...)
+		}
+	}
+	for i := 0; i < MaxY; i++ {
+		column, _ := getSliceXN(table, i)
+		cyCol := getChengYu(i, column, true)
+		if len(cyCol) > 0 {
+			allColCY = append(allColCY, cyCol...)
+		}
+	}
+	fmt.Println("所有行中的成语： ")
+	for _, item := range allLineCY {
+		fmt.Println(item)
+		//key := fmt.Sprint(item)
+		//fmt.Println("key: ", key)
+	}
+	fmt.Println("所有列中的成语： ")
+	for _, item := range allColCY {
+		fmt.Println(item)
+	}
+
+	//{HeadUseCyIndex: 0, FootUseCyIndex: 1, Head: 2, Foot: 1},
+	//{HeadUseCyIndex: 1, FootUseCyIndex: 2, Head: 3, Foot: 1},
+	//{HeadUseCyIndex: 2, FootUseCyIndex: 3, Head: 3, Foot: 1},
+	//{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 3, Foot: 2},
+
+	//TODO 判断一个成语到底是行的还是列的
+	cyMap := make(map[string]int, 0)
+	for _, col := range allColCY {
+		keyCol := fmt.Sprintf("col_%s", fmt.Sprint(col))
+		if _, ok := cyMap[keyCol]; !ok || cyMap[keyCol] <= 0 {
+			cyMap[keyCol] = len(cyMap)
+		}
+		for _, line := range allLineCY {
+			keyLine := fmt.Sprintf("line_%s", fmt.Sprint(line))
+			var colPos, linePos int
+			var err error
+			if colPos, linePos, err = getHitPoint(col, line); err != nil {
+				fmt.Println("getHitPoint err: ", err, line, col)
+			} else {
+				if _, ok := cyMap[keyLine]; !ok || cyMap[keyLine] <= 0 {
+					cyMap[keyLine] = len(cyMap)
+				}
+				setting = append(setting, chengyu.Blank{
+					Head:           colPos,
+					Foot:           linePos,
+					HeadUseCyIndex: cyMap[keyCol],
+					FootUseCyIndex: cyMap[keyLine],
+				})
+			}
+		}
+	}
+
+	for _, info := range setting {
+		fmt.Printf("%+v, %v \n", info, cyMap)
+	}
+	return setting, nil
+}
+
+// 获取成语交叉点位置
+func getHitPoint(col, line ChengYu) (colPos, linePos int, err error) {
+	if len(line) < ChengYuLen || len(col) < ChengYuLen {
+		return 0, 0, errors.New("invalid len")
+	}
+	for indexLine, pointX := range line {
+		for indexCol, pointY := range col {
+			if pointX.X == pointY.X && pointX.Y == pointY.Y {
+				return indexCol + 1, indexLine + 1, nil
+			}
+		}
+	}
+	return 0, 0, errors.New("no hit point")
 }

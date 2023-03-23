@@ -85,7 +85,6 @@ func GetChengyuPosStr(begin, end int, item string) (string, error) {
 }
 
 func Check(ones []string, setting []Blank, count int) bool {
-	fmt.Println("check: ", ones, setting, count)
 	lengOnes := len(ones)
 	if lengOnes != count {
 		return false
@@ -98,7 +97,6 @@ func Check(ones []string, setting []Blank, count int) bool {
 		return false
 	}
 
-	fmt.Println("check2: ", len(onesMap), lengOnes, onesMap, ones)
 	var c1, c2 string
 	var e1, e2 error
 	for _, info := range setting {
