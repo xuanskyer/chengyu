@@ -211,13 +211,13 @@ func printResult2Table(one []string, sortedCyPos []ChengYu) {
 			continue
 		}
 		word1, _ := chengyu.GetChengyuPosStr(0, 1, cy)
-		tableString[point[0].X][point[0].Y] = word1
+		tableString[point[0].Y][point[0].X] = word1
 		word2, _ := chengyu.GetChengyuPosStr(1, 2, cy)
-		tableString[point[1].X][point[1].Y] = word2
+		tableString[point[1].Y][point[1].X] = word2
 		word3, _ := chengyu.GetChengyuPosStr(2, 3, cy)
-		tableString[point[2].X][point[2].Y] = word3
+		tableString[point[2].Y][point[2].X] = word3
 		word4, _ := chengyu.GetChengyuPosStr(3, 4, cy)
-		tableString[point[3].X][point[3].Y] = word4
+		tableString[point[3].Y][point[3].X] = word4
 	}
 	//fmt.Printf("%+v\n", one)
 	for _, item := range tableString {
