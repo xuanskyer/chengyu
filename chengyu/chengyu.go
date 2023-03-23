@@ -18,6 +18,7 @@ type Blank struct {
 type BlankItem struct {
 	Head           int `json:"head"`
 	HeadUseCyIndex int `json:"head_use_cy_index"` //Head 使用第几个成语匹配
+	FootUseCyIndex int `json:"foot_use_cy_index"` //foot 使用第几个成语匹配
 	Foot           int `json:"foot"`
 }
 
@@ -98,19 +99,32 @@ func Check(ones []string, setting []Blank, count int) bool {
 	}
 
 	fmt.Println("check2: ", len(onesMap), lengOnes, onesMap, ones)
-	//var c1, c2 string
-	//var e1, e2 error
+	var c1, c2 string
+	var e1, e2 error
+	for _, info := range setting {
+		if len(info.HeadFoot) > 0 {
+			for _, val := range info.HeadFoot {
+				c1, e1 = GetChengyuPosStr(val.Head-1, val.Head, ones[val.HeadUseCyIndex])
+				c2, e2 = GetChengyuPosStr(val.Foot-1, val.Foot, ones[val.FootUseCyIndex])
+				if e1 != nil || e2 != nil {
+					fmt.Println(e1, e2)
+				}
+				if c1 == "" || c2 == "" || c1 != c2 || e1 != nil || e2 != nil {
+					return false
+				}
+			}
+		} else {
 
-	//for index, info := range setting {
-	//	c1, e1 = GetChengyuPosStr(info.Head-1, info.Head, ones[index])
-	//	c2, e2 = GetChengyuPosStr(info.Foot-1, info.Foot, ones[index+1])
-	//	if e1 != nil || e2 != nil {
-	//		fmt.Println(e1, e2)
-	//	}
-	//	if c1 == "" || c2 == "" || c1 != c2 || e1 != nil || e2 != nil {
-	//		return false
-	//	}
-	//}
+			c1, e1 = GetChengyuPosStr(info.Head-1, info.Head, ones[info.HeadUseCyIndex])
+			c2, e2 = GetChengyuPosStr(info.Foot-1, info.Foot, ones[info.FootUseCyIndex])
+			if e1 != nil || e2 != nil {
+				fmt.Println(e1, e2)
+			}
+			if c1 == "" || c2 == "" || c1 != c2 || e1 != nil || e2 != nil {
+				return false
+			}
+		}
+	}
 	return true
 }
 
