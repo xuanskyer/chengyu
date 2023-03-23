@@ -14,6 +14,8 @@ const (
 	p9rNil   = 0 //占位符状态：未使用
 	p9rBlank = 1 //占位符状态：空白
 	p9rUsed  = 2 //占位符状态：有字
+
+	ChengYuLen = 4
 )
 
 type Setting struct {
@@ -98,8 +100,13 @@ func main() {
 		{HeadUseCyIndex: 2, FootUseCyIndex: 3, Head: 3, Foot: 1},
 		{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 3, Foot: 2},
 	}
-
-	fmt.Println("地图表格：")
+	isValidTable := IsValidTemplate(table)
+	if !isValidTable {
+		fmt.Println("表格模板非法！")
+		return
+	} else {
+		fmt.Println("表格模板OK")
+	}
 	allCY := []ChengYu{}
 	allLineCY := []ChengYu{}
 	allColCY := []ChengYu{}
@@ -167,6 +174,39 @@ func main() {
 	elapsed := time.Since(start)
 	fmt.Println("该函数执行完成耗时：", elapsed)
 	fmt.Println("resultCount: ", len(result), "filterCount: ", len(filter))
+}
+
+// 判断模板是否合法
+func IsValidTemplate(table [][]int) bool {
+	for _, item := range table {
+		count := 0
+		fmt.Println(item)
+		for _, val := range item {
+			if val == p9rNil {
+				count = 0
+			} else {
+				count++
+			}
+		}
+		if count > ChengYuLen {
+			return false
+		}
+	}
+	for i := 0; i < MaxY; i++ {
+		column, _ := getSliceXN(table, i)
+		count := 0
+		for _, val := range column {
+			if val == p9rNil {
+				count = 0
+			} else {
+				count++
+			}
+		}
+		if count > ChengYuLen {
+			return false
+		}
+	}
+	return true
 }
 
 // 竖向取二维切片的第N列
