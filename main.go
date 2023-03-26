@@ -66,10 +66,10 @@ func main() {
 		{0, 0, 1, 0, 1, 0, 1, 0, 0},
 		{0, 0, 1, 0, 1, 1, 1, 1, 0},
 		{0, 0, 0, 0, 1, 0, 1, 0, 0},
-		{0, 0, 0, 0, 0, 0, 1, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 1, 1, 1, 1},
+		{0, 0, 0, 0, 0, 0, 0, 1, 0},
+		{0, 0, 0, 0, 0, 0, 0, 1, 0},
+		{0, 0, 0, 0, 0, 0, 0, 1, 0},
 	}
 
 	//v2Setting := []chengyu.Blank{
@@ -79,9 +79,10 @@ func main() {
 	//	{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 3, Foot: 2},
 	//}
 	v2Setting, sortedCyPos, _ := chengyu.Table2Setting(table)
-	//for _, item := range v2Setting {
-	//	fmt.Printf("%+v\n", item)
-	//}
+	fmt.Println("v2Setting")
+	for _, item := range v2Setting {
+		fmt.Printf("%+v\n", item)
+	}
 
 	//for _, val := range sortedCyPos {
 	//	fmt.Printf("%+v\n", val)

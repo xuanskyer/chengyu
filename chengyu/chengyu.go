@@ -3,6 +3,7 @@ package chengyu
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode/utf8"
 )
@@ -337,33 +338,130 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 			allColCY = append(allColCY, cyCol...)
 		}
 	}
+	sortIndex := 0
 	cyMap := make(map[string]int, 0)
 	sortedCyPos := make([]ChengYu, 0)
+	crossPoint := make(map[string]bool, 0)
 	for _, col := range allColCY {
 		keyCol := fmt.Sprintf("%s", fmt.Sprint(col))
+		//fmt.Printf("keyCol: %v\n", keyCol)
 		if _, ok := cyMap[keyCol]; !ok || cyMap[keyCol] <= 0 {
-			cyMap[keyCol] = len(cyMap)
 			sortedCyPos = append(sortedCyPos, col)
+			cyMap[keyCol] = sortIndex
+			sortIndex++
 		}
+		isAloneCol := true //是否是无相交的独立成语
 		for _, line := range allLineCY {
 			keyLine := fmt.Sprintf("%s", fmt.Sprint(line))
 			var colPos, linePos int
+			var point CyCell
 			var err error
-			if colPos, linePos, err = getHitPoint(col, line); err != nil {
+			if colPos, linePos, point, err = getHitPoint(col, line); err != nil {
 				//fmt.Println("getHitPoint err: ", err, line, col)
 			} else {
+				isAloneCol = false
 				if _, ok := cyMap[keyLine]; !ok || cyMap[keyLine] <= 0 {
-					cyMap[keyLine] = len(cyMap)
+					//fmt.Printf("insert2: %v\n", line)
 					sortedCyPos = append(sortedCyPos, line)
+					cyMap[keyLine] = sortIndex
+					sortIndex++
+					fmt.Println("cyMap: ", cyMap)
 				}
-				setting = append(setting, Blank{
-					Head:           colPos,
-					Foot:           linePos,
-					HeadUseCyIndex: cyMap[keyCol],
-					FootUseCyIndex: cyMap[keyLine],
-				})
+				if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
+					setting = append(setting, Blank{
+						Head:           colPos,
+						Foot:           linePos,
+						HeadUseCyIndex: cyMap[keyCol],
+						FootUseCyIndex: cyMap[keyLine],
+					})
+					fmt.Printf("222 %+v\n", Blank{
+						Head:           colPos,
+						Foot:           linePos,
+						HeadUseCyIndex: cyMap[keyCol],
+						FootUseCyIndex: cyMap[keyLine],
+					})
+				}
+				crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
+				for _, innerCol := range allColCY {
+					//剩余的与当前行有交点的列也记录
+					keyInnerCol := fmt.Sprintf("%s", fmt.Sprint(innerCol))
+
+					if colPos, linePos, point, err = getHitPoint(innerCol, line); err == nil {
+
+						fmt.Printf("keyInnerCol: %v, sort: %v \n", keyInnerCol, cyMap[keyInnerCol])
+						if _, ok := cyMap[keyInnerCol]; !ok {
+							sortedCyPos = append(sortedCyPos, innerCol)
+							cyMap[keyInnerCol] = sortIndex
+							sortIndex++
+							fmt.Println("cyMap2: ", cyMap)
+						}
+						if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
+							setting = append(setting, Blank{
+								Head:           colPos,
+								Foot:           linePos,
+								HeadUseCyIndex: cyMap[keyInnerCol],
+								FootUseCyIndex: cyMap[keyLine],
+							})
+
+							fmt.Printf("333 %+v\n", Blank{
+								Head:           colPos,
+								Foot:           linePos,
+								HeadUseCyIndex: cyMap[keyInnerCol],
+								FootUseCyIndex: cyMap[keyLine],
+							})
+						}
+
+						crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
+					}
+				}
 			}
 		}
+		if isAloneCol {
+			//无相交的成语
+			setting = append(setting, Blank{
+				Head:           -1,
+				Foot:           -1,
+				HeadUseCyIndex: cyMap[keyCol],
+				FootUseCyIndex: -1,
+			})
+
+		}
+	}
+
+	//剩下的无相交的独立行成语计入
+	for _, aloneLine := range allLineCY {
+		keyAloneLine := fmt.Sprintf("%s", fmt.Sprint(aloneLine))
+		if _, ok := cyMap[keyAloneLine]; !ok {
+
+			fmt.Printf("keyAloneLine: %v, %v", keyAloneLine, cyMap[keyAloneLine])
+			cyMap[keyAloneLine] = sortIndex
+			sortIndex++
+			fmt.Println("cyMap3: ", cyMap)
+			sortedCyPos = append(sortedCyPos, aloneLine)
+			setting = append(setting, Blank{
+				Head:           -1,
+				Foot:           -1,
+				HeadUseCyIndex: cyMap[keyAloneLine],
+				FootUseCyIndex: -1,
+			})
+		}
+	}
+	fmt.Println("crossPoint:")
+	for k, v := range crossPoint {
+
+		fmt.Printf("%v, %v\n", k, v)
+	}
+
+	fmt.Println("cYmAP:")
+	for k, v := range cyMap {
+
+		fmt.Printf("%v, %v\n", k, v)
+	}
+
+	fmt.Println("sortedCyPos:")
+	for _, item := range sortedCyPos {
+
+		fmt.Printf("%+v\n", item)
 	}
 
 	//配置排序
@@ -374,6 +472,11 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 		}
 	}
 
+	fmt.Println("setting:")
+	sort.Sort(BlankSort(setting))
+	for _, item := range setting {
+		fmt.Printf("%+v\n", item)
+	}
 	//配置分组
 	lastFootUseCyIndex := 0
 	groupSetting := [][]Blank{}
@@ -408,16 +511,27 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 }
 
 // 获取成语交叉点位置
-func getHitPoint(col, line ChengYu) (colPos, linePos int, err error) {
+func getHitPoint(col, line ChengYu) (colPos, linePos int, point CyCell, err error) {
 	if len(line) < CyLen || len(col) < CyLen {
-		return 0, 0, errors.New("invalid len")
+		return 0, 0, CyCell{}, errors.New("invalid len")
 	}
 	for indexLine, pointX := range line {
 		for indexCol, pointY := range col {
 			if pointX.X == pointY.X && pointX.Y == pointY.Y {
-				return indexCol + 1, indexLine + 1, nil
+				return indexCol + 1, indexLine + 1, pointX, nil
 			}
 		}
 	}
-	return 0, 0, errors.New("no hit point")
+	return 0, 0, CyCell{}, errors.New("no hit point")
+}
+
+type BlankSort []Blank
+
+func (a BlankSort) Len() int      { return len(a) }
+func (a BlankSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a BlankSort) Less(i, j int) bool {
+	if a[i].FootUseCyIndex == a[j].FootUseCyIndex {
+		return a[i].HeadUseCyIndex < a[j].HeadUseCyIndex
+	}
+	return a[i].FootUseCyIndex < a[j].FootUseCyIndex
 }
