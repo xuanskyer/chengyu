@@ -40,51 +40,6 @@ type BlankItem struct {
 	Foot           int `json:"foot"`
 }
 
-func GenerateResult(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string, result *[][]string, selectedMap map[string]bool) {
-
-	onesMap := make(map[string]bool, 0)
-	for _, one := range selectedOnes {
-		onesMap[one] = true
-	}
-	if len(onesMap) != len(selectedOnes) {
-		return
-	}
-	if len(selectedOnes) == validCount || depth >= validCount {
-		// 已填好所有空白处配置，判断所选成语序列是否符合条件
-		_, ok := selectedMap[fmt.Sprint(selectedOnes)]
-		if !ok {
-			if Check(selectedOnes, blankSetting, validCount) {
-				//fmt.Println("answer: ", selectedOnes)
-				*result = append(*result, selectedOnes)
-			}
-			selectedMap[fmt.Sprint(selectedOnes)] = true
-		}
-		return
-	}
-	var cell1, cell2 string
-	var err1, err2 error
-	// 处理当前递归层
-	if depth > 0 {
-		blank := blankSetting[depth-1]
-		cell1, err1 = GetChengYuPosStr(blank.Head-1, blank.Head, selectedOnes[depth-1])
-	}
-	for c := range chengYuMap {
-		if depth > 0 {
-			blank := blankSetting[depth-1]
-			//cell1, err1 := GetChengYuPosStr(blank.Head-1, blank.Head, selectedOnes[depth-1])
-			cell2, err2 = GetChengYuPosStr(blank.Foot-1, blank.Foot, c)
-			if err1 != nil || err2 != nil {
-				fmt.Println(err1, err2)
-			}
-			if cell1 == "" || cell2 == "" || cell1 != cell2 || err1 != nil || err2 != nil {
-				continue
-			}
-		}
-		// 递归处理下一个空白处
-		GenerateResult(chengYuMap, blankSetting, validCount, depth+1, append(selectedOnes, c), result, selectedMap)
-	}
-}
-
 func GetChengYuPosStr(begin, end int, item string) (string, error) {
 	if begin < 0 || end > 4 || begin > end || begin+1 != end {
 		return "", errors.New("位置非法")
@@ -144,7 +99,8 @@ func Check(ones []string, setting []Blank, count int) bool {
 	return true
 }
 
-func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string, result *[][]string, selectedMap map[string]bool) {
+func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string,
+	result map[string]bool, selectedMap map[string]bool) {
 
 	//fmt.Println("begin: ", selectedOnes, depth)
 	onesMap := make(map[string]bool, 0)
@@ -154,19 +110,21 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 	if len(onesMap) != len(selectedOnes) {
 		return
 	}
-	//fmt.Println("begin2: ", selectedOnes, depth, len(onesMap), len(selectedOnes), validCount, len(blankSetting))
-	if len(selectedOnes) == validCount || depth > len(blankSetting)+1 {
+	//fmt.Println(time.Now().UnixNano(), "begin2: ", selectedOnes,
+	//	"depth: ", depth, "len(onesMap): ", len(onesMap), "len(selectedOnes): ", len(selectedOnes),
+	//	"validCount: ", validCount, "len(blankSetting): ", len(blankSetting))
+	if len(selectedOnes) == validCount {
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
 		key := strings.Join(selectedOnes, ",")
 		_, ok := selectedMap[key]
 		if !ok {
 			if Check(selectedOnes, blankSetting, validCount) {
-				*result = append(*result, selectedOnes)
+				result[strings.Join(selectedOnes, ",")] = true
+				//result = append(result, selectedOnes)
 			}
 			key = strings.Join(selectedOnes, ",")
 			selectedMap[key] = true
 		}
-
 		return
 	}
 
@@ -176,10 +134,11 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 ChengYuMapFor:
 	for c := range chengYuMap {
 		if depth > 0 {
-			blank := blankSetting[depth-1]
-			if depth == 6 {
-				//fmt.Println("blank: ", blank)
+			if isExisted(c, selectedOnes) {
+				continue
 			}
+			blank := blankSetting[depth-1]
+
 			if len(blank.HeadFoot) > 0 {
 				hitCount := 0
 				for _, val := range blank.HeadFoot {
@@ -506,4 +465,16 @@ func (a BlankSort) Less(i, j int) bool {
 		return a[i].HeadUseCyIndex < a[j].HeadUseCyIndex
 	}
 	return a[i].FootUseCyIndex < a[j].FootUseCyIndex
+}
+
+func isExisted(cy string, cyList []string) bool {
+	if len(cyList) <= 0 {
+		return false
+	}
+	for _, item := range cyList {
+		if cy == item {
+			return true
+		}
+	}
+	return false
 }
