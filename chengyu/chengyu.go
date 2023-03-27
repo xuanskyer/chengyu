@@ -163,6 +163,7 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 			if Check(selectedOnes, blankSetting, validCount) {
 				*result = append(*result, selectedOnes)
 			}
+			key = strings.Join(selectedOnes, ",")
 			selectedMap[key] = true
 		}
 
@@ -172,7 +173,7 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 	var cell1, cell2 string
 	var err1, err2 error
 	// 处理当前递归层
-ChengyuMapFor:
+ChengYuMapFor:
 	for c := range chengYuMap {
 		if depth > 0 {
 			blank := blankSetting[depth-1]
@@ -186,7 +187,7 @@ ChengyuMapFor:
 					cell2, err2 = GetChengYuPosStr(val.Foot-1, val.Foot, c)
 					//fmt.Printf("aaaa: %d, %v, %+v, cell1: %v,cell2: %v, old: %v, new: %v \n", depth, selectedOnes, blank, cell1, cell2, selectedOnes[val.HeadUseCyIndex], c)
 					if err2 != nil || cell2 == "" || cell1 == "" || cell1 != cell2 || err1 != nil {
-						continue ChengyuMapFor
+						continue ChengYuMapFor
 					} else {
 						hitCount++
 					}
