@@ -102,6 +102,9 @@ func Check(ones []string, setting []Blank, count int) bool {
 func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string,
 	result map[string]bool, selectedMap map[string]bool) {
 
+	if len(result) > 4999 {
+		return
+	}
 	//fmt.Println("begin: ", selectedOnes, depth)
 	onesMap := make(map[string]bool, 0)
 	for _, one := range selectedOnes {
