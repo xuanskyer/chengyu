@@ -71,13 +71,29 @@ func main() {
 		{0, 0, 0, 0, 0, 0, 0, 1, 0},
 		{0, 0, 0, 0, 0, 0, 0, 1, 0},
 	}
-
+	//table := [][]int{
+	//	{0, 0, 1, 0, 0, 0, 0, 0, 0},
+	//	{0, 0, 1, 1, 1, 1, 0, 0, 0},
+	//	{0, 0, 1, 0, 1, 0, 1, 0, 0},
+	//	{0, 0, 1, 0, 1, 1, 1, 1, 0},
+	//	{0, 0, 0, 0, 1, 0, 1, 0, 0},
+	//	{0, 0, 0, 0, 0, 1, 1, 1, 1},
+	//	{0, 0, 0, 0, 0, 1, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 1, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 1, 0, 0, 0},
+	//}
 	//v2Setting := []chengyu.Blank{
 	//	{HeadUseCyIndex: 0, FootUseCyIndex: 1, Head: 2, Foot: 1},
 	//	{HeadUseCyIndex: 1, FootUseCyIndex: 2, Head: 3, Foot: 1},
 	//	{HeadUseCyIndex: 2, FootUseCyIndex: 3, Head: 3, Foot: 1},
 	//	{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 3, Foot: 2},
 	//}
+
+	isValidTable := chengyu.IsValidTemplate(table)
+	if !isValidTable {
+		fmt.Println("表格模板非法！")
+		return
+	}
 	v2Setting, sortedCyPos, _ := chengyu.Table2Setting(table)
 	fmt.Println("v2Setting")
 	for _, item := range v2Setting {
@@ -87,11 +103,6 @@ func main() {
 	//for _, val := range sortedCyPos {
 	//	fmt.Printf("%+v\n", val)
 	//}
-	isValidTable := chengyu.IsValidTemplate(table)
-	if !isValidTable {
-		fmt.Println("表格模板非法！")
-		return
-	}
 	allCY := []chengyu.ChengYu{}
 	allLineCY := []chengyu.ChengYu{}
 	allColCY := []chengyu.ChengYu{}
@@ -136,6 +147,8 @@ func main() {
 	selectedMap := make(map[string]bool, 0)
 	chengyu.RecursionGenerate(chengYuMap, v2Setting, len(allCY), 0, []string{}, &result, selectedMap)
 
+	//TODO result的结果集中不应该有重复的才对，暂时通过二次过滤
+
 	filter := [][]string{}
 	filterMap := make(map[string]bool, 0)
 	for _, val := range result {
@@ -161,5 +174,5 @@ func main() {
 			fmt.Println("\n")
 		}
 	}
-	fmt.Printf("该函数执行完成耗时：%v，答案数：%d\n", elapsed, len(result))
+	fmt.Printf("该函数执行完成耗时：%v，答案数：%d, %d\n", elapsed, len(result), len(filter))
 }

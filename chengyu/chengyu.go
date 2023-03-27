@@ -176,6 +176,9 @@ ChengyuMapFor:
 	for c := range chengYuMap {
 		if depth > 0 {
 			blank := blankSetting[depth-1]
+			if depth == 6 {
+				//fmt.Println("blank: ", blank)
+			}
 			if len(blank.HeadFoot) > 0 {
 				hitCount := 0
 				for _, val := range blank.HeadFoot {
@@ -192,9 +195,9 @@ ChengyuMapFor:
 					goto HitAndRecursion
 				}
 			} else {
-				if blank.HeadUseCyIndex > len(selectedOnes)-1 {
-					return
-				}
+				//if blank.HeadUseCyIndex > len(selectedOnes)-1 {
+				//	return
+				//}
 				cell2, err2 = GetChengYuPosStr(blank.Foot-1, blank.Foot, c)
 				if err2 != nil || cell2 == "" {
 					continue
@@ -342,101 +345,15 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 	cyMap := make(map[string]int, 0)
 	sortedCyPos := make([]ChengYu, 0)
 	crossPoint := make(map[string]bool, 0)
-	for _, col := range allColCY {
-		keyCol := fmt.Sprintf("%s", fmt.Sprint(col))
-		//fmt.Printf("keyCol: %v\n", keyCol)
-		if _, ok := cyMap[keyCol]; !ok || cyMap[keyCol] <= 0 {
-			sortedCyPos = append(sortedCyPos, col)
-			cyMap[keyCol] = sortIndex
-			sortIndex++
-		}
-		isAloneCol := true //是否是无相交的独立成语
-		for _, line := range allLineCY {
-			keyLine := fmt.Sprintf("%s", fmt.Sprint(line))
-			var colPos, linePos int
-			var point CyCell
-			var err error
-			if colPos, linePos, point, err = getHitPoint(col, line); err != nil {
-				//fmt.Println("getHitPoint err: ", err, line, col)
-			} else {
-				isAloneCol = false
-				if _, ok := cyMap[keyLine]; !ok || cyMap[keyLine] <= 0 {
-					//fmt.Printf("insert2: %v\n", line)
-					sortedCyPos = append(sortedCyPos, line)
-					cyMap[keyLine] = sortIndex
-					sortIndex++
-					fmt.Println("cyMap: ", cyMap)
-				}
-				if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
-					setting = append(setting, Blank{
-						Head:           colPos,
-						Foot:           linePos,
-						HeadUseCyIndex: cyMap[keyCol],
-						FootUseCyIndex: cyMap[keyLine],
-					})
-					fmt.Printf("222 %+v\n", Blank{
-						Head:           colPos,
-						Foot:           linePos,
-						HeadUseCyIndex: cyMap[keyCol],
-						FootUseCyIndex: cyMap[keyLine],
-					})
-				}
-				crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
-				for _, innerCol := range allColCY {
-					//剩余的与当前行有交点的列也记录
-					keyInnerCol := fmt.Sprintf("%s", fmt.Sprint(innerCol))
-
-					if colPos, linePos, point, err = getHitPoint(innerCol, line); err == nil {
-
-						fmt.Printf("keyInnerCol: %v, sort: %v \n", keyInnerCol, cyMap[keyInnerCol])
-						if _, ok := cyMap[keyInnerCol]; !ok {
-							sortedCyPos = append(sortedCyPos, innerCol)
-							cyMap[keyInnerCol] = sortIndex
-							sortIndex++
-							fmt.Println("cyMap2: ", cyMap)
-						}
-						if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
-							setting = append(setting, Blank{
-								Head:           colPos,
-								Foot:           linePos,
-								HeadUseCyIndex: cyMap[keyInnerCol],
-								FootUseCyIndex: cyMap[keyLine],
-							})
-
-							fmt.Printf("333 %+v\n", Blank{
-								Head:           colPos,
-								Foot:           linePos,
-								HeadUseCyIndex: cyMap[keyInnerCol],
-								FootUseCyIndex: cyMap[keyLine],
-							})
-						}
-
-						crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
-					}
-				}
-			}
-		}
-		if isAloneCol {
-			//无相交的成语
-			setting = append(setting, Blank{
-				Head:           -1,
-				Foot:           -1,
-				HeadUseCyIndex: cyMap[keyCol],
-				FootUseCyIndex: -1,
-			})
-
-		}
-	}
+	setSettingPos(allColCY, allLineCY, &setting, &sortIndex, cyMap, &sortedCyPos, crossPoint)
 
 	//剩下的无相交的独立行成语计入
 	for _, aloneLine := range allLineCY {
 		keyAloneLine := fmt.Sprintf("%s", fmt.Sprint(aloneLine))
 		if _, ok := cyMap[keyAloneLine]; !ok {
 
-			fmt.Printf("keyAloneLine: %v, %v", keyAloneLine, cyMap[keyAloneLine])
 			cyMap[keyAloneLine] = sortIndex
 			sortIndex++
-			fmt.Println("cyMap3: ", cyMap)
 			sortedCyPos = append(sortedCyPos, aloneLine)
 			setting = append(setting, Blank{
 				Head:           -1,
@@ -445,23 +362,6 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 				FootUseCyIndex: -1,
 			})
 		}
-	}
-	fmt.Println("crossPoint:")
-	for k, v := range crossPoint {
-
-		fmt.Printf("%v, %v\n", k, v)
-	}
-
-	fmt.Println("cYmAP:")
-	for k, v := range cyMap {
-
-		fmt.Printf("%v, %v\n", k, v)
-	}
-
-	fmt.Println("sortedCyPos:")
-	for _, item := range sortedCyPos {
-
-		fmt.Printf("%+v\n", item)
 	}
 
 	//配置排序
@@ -472,11 +372,8 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 		}
 	}
 
-	fmt.Println("setting:")
 	sort.Sort(BlankSort(setting))
-	for _, item := range setting {
-		fmt.Printf("%+v\n", item)
-	}
+
 	//配置分组
 	lastFootUseCyIndex := 0
 	groupSetting := [][]Blank{}
@@ -508,6 +405,80 @@ func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
 		}
 	}
 	return formattedSetting, sortedCyPos, nil
+}
+
+func setSettingPos(allColCY, allLineCY []ChengYu, setting *[]Blank, sortIndex *int, cyMap map[string]int, sortedCyPos *[]ChengYu, crossPoint map[string]bool) {
+
+	for _, col := range allColCY {
+		keyCol := fmt.Sprintf("%s", fmt.Sprint(col))
+		if _, ok := cyMap[keyCol]; !ok || cyMap[keyCol] <= 0 {
+			*sortedCyPos = append(*sortedCyPos, col)
+			cyMap[keyCol] = *sortIndex
+			*sortIndex++
+		}
+		isAloneCol := true //是否是无相交的独立成语
+		for _, line := range allLineCY {
+			keyLine := fmt.Sprintf("%s", fmt.Sprint(line))
+			var colPos, linePos int
+			var point CyCell
+			var err error
+			if colPos, linePos, point, err = getHitPoint(col, line); err != nil {
+				//fmt.Println("getHitPoint err: ", err, line, col)
+			} else {
+				isAloneCol = false
+				if _, ok := cyMap[keyLine]; !ok || cyMap[keyLine] <= 0 {
+					*sortedCyPos = append(*sortedCyPos, line)
+					cyMap[keyLine] = *sortIndex
+					*sortIndex++
+				}
+				if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
+
+					*setting = append(*setting, Blank{
+						Head:           colPos,
+						Foot:           linePos,
+						HeadUseCyIndex: cyMap[keyCol],
+						FootUseCyIndex: cyMap[keyLine],
+					})
+				}
+				crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
+				for _, innerCol := range allColCY {
+					//剩余的与当前行有交点的列也记录
+					keyInnerCol := fmt.Sprintf("%s", fmt.Sprint(innerCol))
+
+					if colPos, linePos, point, err = getHitPoint(innerCol, line); err == nil {
+
+						if _, ok := cyMap[keyInnerCol]; !ok {
+							*sortedCyPos = append(*sortedCyPos, innerCol)
+							cyMap[keyInnerCol] = *sortIndex
+							*sortIndex++
+						}
+						if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
+							*setting = append(*setting, Blank{
+								Head:           colPos,
+								Foot:           linePos,
+								HeadUseCyIndex: cyMap[keyInnerCol],
+								FootUseCyIndex: cyMap[keyLine],
+							})
+
+							crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
+							setSettingPos([]ChengYu{innerCol}, allLineCY, setting, sortIndex, cyMap, sortedCyPos, crossPoint)
+						}
+
+					}
+				}
+			}
+		}
+		if isAloneCol {
+			//无相交的成语
+			*setting = append(*setting, Blank{
+				Head:           -1,
+				Foot:           -1,
+				HeadUseCyIndex: cyMap[keyCol],
+				FootUseCyIndex: -1,
+			})
+
+		}
+	}
 }
 
 // 获取成语交叉点位置
