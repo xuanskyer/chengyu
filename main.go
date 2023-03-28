@@ -40,28 +40,6 @@ func main() {
 	//	{0, 0, 0, 0, 0, 0, 1, 0, 0},
 	//	{1, 1, 1, 1, 0, 1, 1, 1, 1},
 	//}
-	//
-	//v2Setting := []chengyu.Blank{
-	//	{HeadUseCyIndex: 0, Head: 2, FootUseCyIndex: 1, Foot: 1},
-	//	{HeadUseCyIndex: 0, Head: 3, FootUseCyIndex: 2, Foot: 1},
-	//	{HeadUseCyIndex: 0, Head: 4, FootUseCyIndex: 3, Foot: 1},
-	//	{HeadFoot: []chengyu.BlankItem{
-	//		chengyu.BlankItem{HeadUseCyIndex: 1, FootUseCyIndex: 4, Head: 2, Foot: 1},
-	//		chengyu.BlankItem{HeadUseCyIndex: 2, FootUseCyIndex: 4, Head: 2, Foot: 2},
-	//		chengyu.BlankItem{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 2, Foot: 3},
-	//	}},
-	//	{HeadFoot: []chengyu.BlankItem{
-	//		chengyu.BlankItem{HeadUseCyIndex: 1, FootUseCyIndex: 5, Head: 3, Foot: 2},
-	//		chengyu.BlankItem{HeadUseCyIndex: 2, FootUseCyIndex: 5, Head: 3, Foot: 3},
-	//		chengyu.BlankItem{HeadUseCyIndex: 3, FootUseCyIndex: 5, Head: 3, Foot: 4},
-	//	}},
-	//	{HeadFoot: []chengyu.BlankItem{
-	//		chengyu.BlankItem{HeadUseCyIndex: 1, FootUseCyIndex: 6, Head: 4, Foot: 1},
-	//		chengyu.BlankItem{HeadUseCyIndex: 2, FootUseCyIndex: 6, Head: 4, Foot: 2},
-	//		chengyu.BlankItem{HeadUseCyIndex: 3, FootUseCyIndex: 6, Head: 4, Foot: 3},
-	//	}},
-	//}
-
 	//demo2
 	table := [][]int{
 		{1, 1, 1, 1, 0, 0, 0, 0, 0},
@@ -74,23 +52,6 @@ func main() {
 		{0, 0, 1, 1, 1, 1, 0, 1, 0},
 		{0, 0, 0, 1, 0, 1, 0, 1, 0},
 	}
-	//table := [][]int{
-	//	{0, 0, 1, 0, 0, 0, 0, 0, 0},
-	//	{0, 0, 1, 1, 1, 1, 0, 0, 0},
-	//	{0, 0, 1, 0, 1, 0, 1, 0, 0},
-	//	{0, 0, 1, 0, 1, 1, 1, 1, 0},
-	//	{0, 0, 0, 0, 1, 0, 1, 0, 0},
-	//	{0, 0, 0, 0, 0, 1, 1, 1, 1},
-	//	{0, 0, 0, 0, 0, 1, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 1, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 1, 0, 0, 0},
-	//}
-	//v2Setting := []chengyu.Blank{
-	//	{HeadUseCyIndex: 0, FootUseCyIndex: 1, Head: 2, Foot: 1},
-	//	{HeadUseCyIndex: 1, FootUseCyIndex: 2, Head: 3, Foot: 1},
-	//	{HeadUseCyIndex: 2, FootUseCyIndex: 3, Head: 3, Foot: 1},
-	//	{HeadUseCyIndex: 3, FootUseCyIndex: 4, Head: 3, Foot: 2},
-	//}
 
 	isValidTable := chengyu.IsValidTemplate(table)
 	if !isValidTable {
@@ -123,21 +84,7 @@ func main() {
 			allColCY = append(allColCY, cyCol...)
 		}
 	}
-	//fmt.Println("所有行中的成语： ")
-	//for _, item := range allLineCY {
-	//	fmt.Println(item)
-	//}
-	//fmt.Println("所有列中的成语： ")
-	//for _, item := range allColCY {
-	//	fmt.Println(item)
-	//}
 	allCY = append(append(allCY, allColCY...), allLineCY...)
-
-	//fmt.Println("所有成语位： ")
-	//for index, item := range allCY {
-	//	fmt.Println(index, item)
-	//}
-	//fmt.Printf("成语列表(总数：%d)\n", len(ChengYuList))
 
 	// 使用 map 存储成语列表，方便去重
 	chengYuMap := make(map[string]bool)
@@ -150,8 +97,6 @@ func main() {
 	result := make(map[string]bool, 0)
 	selectedMap := make(map[string]bool, 0)
 	chengyu.RecursionGenerate(chengYuMap, v2Setting, len(allCY), 0, []string{}, result, selectedMap)
-	fmt.Println("result: ", result)
-	//TODO result的结果集中不应该有重复的才对，暂时通过二次过滤
 
 	filter := [][]string{}
 	filterMap := make(map[string]bool, 0)

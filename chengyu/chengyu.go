@@ -17,9 +17,10 @@ const (
 
 	CyLen = 4 //一个成语的字数
 
-	CyTypeEmpty = -1
-	CyTypeCol   = 0
-	CyTypeLine  = 1
+	CyTypeCol  = 0
+	CyTypeLine = 1
+
+	MaxResultCount = 499
 )
 
 type CyCell struct {
@@ -66,15 +67,15 @@ func GetChengYuPosStr(begin, end int, item string) (string, error) {
 }
 
 func Check(ones []string, setting []Blank, count int) bool {
-	lengOnes := len(ones)
-	if lengOnes != count {
+	lengthOnes := len(ones)
+	if lengthOnes != count {
 		return false
 	}
 	onesMap := make(map[string]bool, 0)
 	for _, one := range ones {
 		onesMap[one] = true
 	}
-	if len(onesMap) != lengOnes {
+	if len(onesMap) != lengthOnes {
 		return false
 	}
 
@@ -118,7 +119,7 @@ func Check(ones []string, setting []Blank, count int) bool {
 func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string,
 	result map[string]bool, selectedMap map[string]bool) {
 
-	if len(result) > 1 {
+	if len(result) > MaxResultCount {
 		return
 	}
 	//fmt.Println("begin: ", selectedOnes, depth)
@@ -129,20 +130,13 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 	if len(onesMap) != len(selectedOnes) {
 		return
 	}
-	//fmt.Println(time.Now().UnixNano(), "begin2: ", selectedOnes,
-	//	"depth: ", depth, "len(onesMap): ", len(onesMap), "len(selectedOnes): ", len(selectedOnes),
-	//	"validCount: ", validCount, "len(blankSetting): ", len(blankSetting))
 	if len(selectedOnes) == validCount {
-		//fmt.Println(time.Now().UnixNano(), "begin2: ", selectedOnes,
-		//	"depth: ", depth, "len(onesMap): ", len(onesMap), "len(selectedOnes): ", len(selectedOnes),
-		//	"validCount: ", validCount, "len(blankSetting): ", len(blankSetting))
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
 		key := strings.Join(selectedOnes, ",")
 		_, ok := selectedMap[key]
 		if !ok {
 			if Check(selectedOnes, blankSetting, validCount) {
 				result[strings.Join(selectedOnes, ",")] = true
-				//result = append(result, selectedOnes)
 			}
 			key = strings.Join(selectedOnes, ",")
 			selectedMap[key] = true
@@ -165,7 +159,6 @@ ChengYuMapFor:
 				for _, val := range blank.HeadFoot {
 					cell1, err1 = GetChengYuPosStr(val.Head-1, val.Head, selectedOnes[val.HeadUseCyIndex])
 					cell2, err2 = GetChengYuPosStr(val.Foot-1, val.Foot, c)
-					//fmt.Printf("aaaa: %d, %v, %+v, cell1: %v,cell2: %v, old: %v, new: %v \n", depth, selectedOnes, blank, cell1, cell2, selectedOnes[val.HeadUseCyIndex], c)
 					if err2 != nil || cell2 == "" || cell1 == "" || cell1 != cell2 || err1 != nil {
 						continue ChengYuMapFor
 					} else {
@@ -176,9 +169,6 @@ ChengYuMapFor:
 					goto HitAndRecursion
 				}
 			} else {
-				//if blank.HeadUseCyIndex > len(selectedOnes)-1 {
-				//	return
-				//}
 				if blank.Head < 0 || blank.Foot < 0 {
 					//无相交的成语直接跳过判断
 					goto HitAndRecursion
@@ -209,7 +199,7 @@ ChengYuMapFor:
 	}
 }
 
-// 判断模板是否合法
+// 判断模板是否合法：同一行/列 不能有多个成语相连或者重叠
 func IsValidTemplate(table [][]int) bool {
 	for _, item := range table {
 		fmt.Println(item)
@@ -242,7 +232,7 @@ func IsValidTemplate(table [][]int) bool {
 	return true
 }
 
-// 输出一个结果表格
+// 打印输出一个结果
 func PrintResult2Table(one []string, sortedCyPos []ChengYu) {
 	if len(one) <= 0 {
 		return
@@ -271,7 +261,6 @@ func PrintResult2Table(one []string, sortedCyPos []ChengYu) {
 		word4, _ := GetChengYuPosStr(3, 4, cy)
 		tableString[point[3].Y][point[3].X] = word4
 	}
-	//fmt.Printf("%+v\n", one)
 	for _, item := range tableString {
 		fmt.Printf("%+v\n", item)
 	}
@@ -315,164 +304,6 @@ func GetChengYu(n int, slice []int, fixLine bool) []ChengYu {
 		}
 	}
 	return cyList
-}
-
-// 从表格生成模板配置
-func Table2Setting(table [][]int) ([]Blank, []ChengYu, error) {
-	setting := []Blank{}
-	allLineCY := []ChengYu{}
-	allColCY := []ChengYu{}
-	for index, item := range table {
-		cy := GetChengYu(index, item, false)
-		if len(cy) > 0 {
-			allLineCY = append(allLineCY, cy...)
-		}
-	}
-	for i := 0; i < TableMaxLen; i++ {
-		column, _ := GetSliceXN(table, i)
-		cyCol := GetChengYu(i, column, true)
-		if len(cyCol) > 0 {
-			allColCY = append(allColCY, cyCol...)
-		}
-	}
-	sortIndex := 0
-	cyMap := make(map[string]int, 0)
-	sortedCyPos := make([]ChengYu, 0)
-	crossPoint := make(map[string]bool, 0)
-	setSettingPos(allColCY, allLineCY, &setting, &sortIndex, cyMap, &sortedCyPos, crossPoint)
-
-	//剩下的无相交的独立行成语计入
-	for _, aloneLine := range allLineCY {
-		keyAloneLine := fmt.Sprintf("%s", fmt.Sprint(aloneLine))
-		if _, ok := cyMap[keyAloneLine]; !ok {
-
-			cyMap[keyAloneLine] = sortIndex
-			sortIndex++
-			sortedCyPos = append(sortedCyPos, aloneLine)
-			setting = append(setting, Blank{
-				Head:           -1,
-				Foot:           -1,
-				HeadUseCyIndex: cyMap[keyAloneLine],
-				FootUseCyIndex: -1,
-			})
-		}
-	}
-
-	//配置排序
-	for index, info := range setting {
-		if info.HeadUseCyIndex > info.FootUseCyIndex {
-			setting[index].HeadUseCyIndex, setting[index].FootUseCyIndex = setting[index].FootUseCyIndex, setting[index].HeadUseCyIndex
-			setting[index].Head, setting[index].Foot = setting[index].Foot, setting[index].Head
-		}
-	}
-
-	sort.Sort(BlankSort(setting))
-
-	//配置分组
-	lastFootUseCyIndex := 0
-	groupSetting := [][]Blank{}
-	formattedSetting := []Blank{}
-	for _, val := range setting {
-		if lastFootUseCyIndex == 0 || lastFootUseCyIndex != val.FootUseCyIndex {
-			groupSetting = append(groupSetting, []Blank{val})
-		} else if val.FootUseCyIndex == lastFootUseCyIndex {
-			length := len(groupSetting)
-			groupSetting[length-1] = append(groupSetting[length-1], val)
-		}
-		lastFootUseCyIndex = val.FootUseCyIndex
-	}
-
-	//分组配置格式化
-	for _, item := range groupSetting {
-		if len(item) <= 0 {
-			continue
-		} else if len(item) == 1 {
-			formattedSetting = append(formattedSetting, item[0])
-		} else {
-			temp := Blank{
-				HeadFoot: make([]BlankItem, 0),
-			}
-			for _, val := range item {
-				temp.HeadFoot = append(temp.HeadFoot, BlankItem{HeadUseCyIndex: val.HeadUseCyIndex, FootUseCyIndex: val.FootUseCyIndex, Head: val.Head, Foot: val.Foot})
-			}
-			formattedSetting = append(formattedSetting, temp)
-		}
-	}
-	return formattedSetting, sortedCyPos, nil
-}
-
-func setSettingPos(allColCY, allLineCY []ChengYu, setting *[]Blank, sortIndex *int, cyMap map[string]int, sortedCyPos *[]ChengYu, crossPoint map[string]bool) {
-
-	for _, col := range allColCY {
-		keyCol := fmt.Sprintf("%s", fmt.Sprint(col))
-		if _, ok := cyMap[keyCol]; !ok || cyMap[keyCol] <= 0 {
-			*sortedCyPos = append(*sortedCyPos, col)
-			cyMap[keyCol] = *sortIndex
-			*sortIndex++
-		}
-		isAloneCol := true //是否是无相交的独立成语
-		for _, line := range allLineCY {
-			keyLine := fmt.Sprintf("%s", fmt.Sprint(line))
-			var colPos, linePos int
-			var point CyCell
-			var err error
-			if colPos, linePos, point, err = getHitPoint(col, line); err != nil {
-				//fmt.Println("getHitPoint err: ", err, line, col)
-			} else {
-				isAloneCol = false
-				if _, ok := cyMap[keyLine]; !ok || cyMap[keyLine] <= 0 {
-					*sortedCyPos = append(*sortedCyPos, line)
-					cyMap[keyLine] = *sortIndex
-					*sortIndex++
-				}
-				if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
-
-					*setting = append(*setting, Blank{
-						Head:           colPos,
-						Foot:           linePos,
-						HeadUseCyIndex: cyMap[keyCol],
-						FootUseCyIndex: cyMap[keyLine],
-					})
-				}
-				crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
-				for _, innerCol := range allColCY {
-					//剩余的与当前行有交点的列也记录
-					keyInnerCol := fmt.Sprintf("%s", fmt.Sprint(innerCol))
-
-					if colPos, linePos, point, err = getHitPoint(innerCol, line); err == nil {
-
-						if _, ok := cyMap[keyInnerCol]; !ok {
-							*sortedCyPos = append(*sortedCyPos, innerCol)
-							cyMap[keyInnerCol] = *sortIndex
-							*sortIndex++
-						}
-						if !crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] {
-							*setting = append(*setting, Blank{
-								Head:           colPos,
-								Foot:           linePos,
-								HeadUseCyIndex: cyMap[keyInnerCol],
-								FootUseCyIndex: cyMap[keyLine],
-							})
-
-							crossPoint[fmt.Sprintf("%d,%d", point.X, point.Y)] = true
-							setSettingPos([]ChengYu{innerCol}, allLineCY, setting, sortIndex, cyMap, sortedCyPos, crossPoint)
-						}
-
-					}
-				}
-			}
-		}
-		if isAloneCol {
-			//无相交的成语
-			*setting = append(*setting, Blank{
-				Head:           -1,
-				Foot:           -1,
-				HeadUseCyIndex: cyMap[keyCol],
-				FootUseCyIndex: -1,
-			})
-
-		}
-	}
 }
 
 // 获取成语交叉点位置
@@ -552,10 +383,7 @@ func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
 		}
 	}
 	loopSettingPos(allColCY, allLineCY, &cyQueue)
-	//fmt.Println("cyQueue: ")
-	//for _, item := range cyQueue {
-	//	fmt.Printf("%v\n", item)
-	//}
+
 	cyOutQueue(allColCY, allLineCY, &setting, &sortIndex, cyMap, &sortedCyPos, crossPoint, &cyQueue)
 
 	//剩下的无相交的独立行成语计入
@@ -596,16 +424,8 @@ func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
 			setting[index].Head, setting[index].Foot = setting[index].Foot, setting[index].Head
 		}
 	}
-	sort.Sort(BlankSort(setting))
-	fmt.Println("cyMap: ")
-	for k, v := range cyMap {
-		fmt.Printf("%v, %v\n", k, v)
-	}
 
-	fmt.Println("setting: ")
-	for k, v := range setting {
-		fmt.Printf("%v, %+v\n", k, v)
-	}
+	sort.Sort(BlankSort(setting))
 
 	//配置分组
 	lastFootUseCyIndex := 0
@@ -641,6 +461,7 @@ func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
 	return formattedSetting, sortedCyPos, nil
 }
 
+// 遍历成语：广度遍历 + 深度遍历
 func loopSettingPos(allColCY, allLineCY []ChengYu, cyQueue *[]ChengYuQueueItem) {
 
 	for _, col := range allColCY {
