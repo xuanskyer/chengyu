@@ -80,7 +80,7 @@ func Check(ones []string, setting []Blank, count int) bool {
 
 	var c1, c2 string
 	var e1, e2 error
-	for _, info := range setting {
+	for index, info := range setting {
 		if len(info.HeadFoot) > 0 {
 			for _, val := range info.HeadFoot {
 				c1, e1 = GetChengYuPosStr(val.Head-1, val.Head, ones[val.HeadUseCyIndex])
@@ -95,6 +95,12 @@ func Check(ones []string, setting []Blank, count int) bool {
 		} else {
 			if info.Head < 0 || info.Foot < 0 {
 				continue
+			}
+			if index-1 >= 0 {
+				//预判断下一个成语是否和当前成语相交
+				if setting[index-1].FootUseCyIndex+1 < info.FootUseCyIndex {
+					continue
+				}
 			}
 			c1, e1 = GetChengYuPosStr(info.Head-1, info.Head, ones[info.HeadUseCyIndex])
 			c2, e2 = GetChengYuPosStr(info.Foot-1, info.Foot, ones[info.FootUseCyIndex])
@@ -154,7 +160,6 @@ ChengYuMapFor:
 				continue
 			}
 			blank := blankSetting[depth-1]
-
 			if len(blank.HeadFoot) > 0 {
 				hitCount := 0
 				for _, val := range blank.HeadFoot {
@@ -175,13 +180,23 @@ ChengYuMapFor:
 				//	return
 				//}
 				if blank.Head < 0 || blank.Foot < 0 {
+					//无相交的成语直接跳过判断
 					goto HitAndRecursion
 				}
+				if depth-2 >= 0 {
+					//预判断下一个成语是否和当前成语相交
+					if blankSetting[depth-2].FootUseCyIndex+1 < blank.FootUseCyIndex && blank.HeadUseCyIndex >= len(selectedOnes) {
+						RecursionGenerate(chengYuMap, blankSetting, validCount, depth, append(selectedOnes, c), result, selectedMap)
+						continue
+					}
+				}
 				cell2, err2 = GetChengYuPosStr(blank.Foot-1, blank.Foot, c)
+
 				if err2 != nil || cell2 == "" {
 					continue
 				}
 				cell1, err1 = GetChengYuPosStr(blank.Head-1, blank.Head, selectedOnes[blank.HeadUseCyIndex])
+
 				if cell1 == "" || cell2 == "" || cell1 != cell2 || err1 != nil || err2 != nil {
 					continue
 				}
@@ -543,8 +558,6 @@ func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
 	//}
 	cyOutQueue(allColCY, allLineCY, &setting, &sortIndex, cyMap, &sortedCyPos, crossPoint, &cyQueue)
 
-	sort.Sort(BlankSort(setting))
-
 	//剩下的无相交的独立行成语计入
 	for _, aloneLine := range allLineCY {
 		keyAloneLine := fmt.Sprintf("%s", fmt.Sprint(aloneLine))
@@ -577,6 +590,13 @@ func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
 		}
 	}
 
+	for index, info := range setting {
+		if info.HeadUseCyIndex > info.FootUseCyIndex {
+			setting[index].HeadUseCyIndex, setting[index].FootUseCyIndex = setting[index].FootUseCyIndex, setting[index].HeadUseCyIndex
+			setting[index].Head, setting[index].Foot = setting[index].Foot, setting[index].Head
+		}
+	}
+	sort.Sort(BlankSort(setting))
 	fmt.Println("cyMap: ")
 	for k, v := range cyMap {
 		fmt.Printf("%v, %v\n", k, v)
@@ -612,6 +632,7 @@ func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
 				HeadFoot: make([]BlankItem, 0),
 			}
 			for _, val := range item {
+				temp.FootUseCyIndex = val.FootUseCyIndex
 				temp.HeadFoot = append(temp.HeadFoot, BlankItem{HeadUseCyIndex: val.HeadUseCyIndex, FootUseCyIndex: val.FootUseCyIndex, Head: val.Head, Foot: val.Foot})
 			}
 			formattedSetting = append(formattedSetting, temp)

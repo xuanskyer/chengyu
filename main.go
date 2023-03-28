@@ -31,14 +31,14 @@ func main() {
 	//demo1
 	table := [][]int{
 		{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 1, 0, 1, 0, 0, 0, 0, 0},
-		{0, 1, 1, 1, 1, 0, 0, 0, 0},
-		{0, 1, 1, 1, 1, 0, 0, 0, 0},
-		{0, 1, 1, 1, 1, 0, 0, 0, 0},
-		{0, 0, 1, 0, 1, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 1, 1, 1, 1},
+		{0, 1, 0, 1, 0, 0, 0, 0, 1},
+		{0, 1, 1, 1, 1, 0, 0, 0, 1},
+		{0, 1, 1, 1, 1, 0, 0, 0, 1},
+		{0, 1, 1, 1, 1, 0, 1, 0, 0},
+		{0, 0, 1, 0, 1, 0, 1, 0, 0},
+		{0, 0, 0, 0, 0, 0, 1, 0, 0},
+		{1, 1, 1, 1, 0, 1, 1, 1, 1},
 	}
 	//
 	//v2Setting := []chengyu.Blank{
@@ -161,7 +161,8 @@ func main() {
 		if _, ok := filterMap[key]; ok {
 			continue
 		}
-		if chengyu.Check(cyList, v2Setting, len(v2Setting)+1) {
+		isValid := chengyu.Check(cyList, v2Setting, len(sortedCyPos))
+		if isValid {
 			filter = append(filter, cyList)
 		}
 		filterMap[key] = true
