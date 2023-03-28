@@ -16,6 +16,10 @@ const (
 	P9rUsed  = 2 //placeholder 占位符状态：有字
 
 	CyLen = 4 //一个成语的字数
+
+	CyTypeEmpty = -1
+	CyTypeCol   = 0
+	CyTypeLine  = 1
 )
 
 type CyCell struct {
@@ -24,6 +28,10 @@ type CyCell struct {
 }
 
 type ChengYu []CyCell
+type ChengYuQueueItem struct {
+	Cy   ChengYu `json:"cy"`
+	Type int     `json:"type"`
+}
 
 type Blank struct {
 	Head           int         `json:"head"`
@@ -85,7 +93,9 @@ func Check(ones []string, setting []Blank, count int) bool {
 				}
 			}
 		} else {
-
+			if info.Head < 0 || info.Foot < 0 {
+				continue
+			}
 			c1, e1 = GetChengYuPosStr(info.Head-1, info.Head, ones[info.HeadUseCyIndex])
 			c2, e2 = GetChengYuPosStr(info.Foot-1, info.Foot, ones[info.FootUseCyIndex])
 			if e1 != nil || e2 != nil {
@@ -102,7 +112,7 @@ func Check(ones []string, setting []Blank, count int) bool {
 func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string,
 	result map[string]bool, selectedMap map[string]bool) {
 
-	if len(result) > 4999 {
+	if len(result) > 1 {
 		return
 	}
 	//fmt.Println("begin: ", selectedOnes, depth)
@@ -117,6 +127,9 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 	//	"depth: ", depth, "len(onesMap): ", len(onesMap), "len(selectedOnes): ", len(selectedOnes),
 	//	"validCount: ", validCount, "len(blankSetting): ", len(blankSetting))
 	if len(selectedOnes) == validCount {
+		//fmt.Println(time.Now().UnixNano(), "begin2: ", selectedOnes,
+		//	"depth: ", depth, "len(onesMap): ", len(onesMap), "len(selectedOnes): ", len(selectedOnes),
+		//	"validCount: ", validCount, "len(blankSetting): ", len(blankSetting))
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
 		key := strings.Join(selectedOnes, ",")
 		_, ok := selectedMap[key]
@@ -161,6 +174,9 @@ ChengYuMapFor:
 				//if blank.HeadUseCyIndex > len(selectedOnes)-1 {
 				//	return
 				//}
+				if blank.Head < 0 || blank.Foot < 0 {
+					goto HitAndRecursion
+				}
 				cell2, err2 = GetChengYuPosStr(blank.Foot-1, blank.Foot, c)
 				if err2 != nil || cell2 == "" {
 					continue
@@ -480,4 +496,236 @@ func isExisted(cy string, cyList []string) bool {
 		}
 	}
 	return false
+}
+
+// 入队
+func QueueIn(cy ChengYuQueueItem, cyQueue []ChengYuQueueItem) []ChengYuQueueItem {
+	cyQueue = append([]ChengYuQueueItem{cy}, cyQueue...)
+	return cyQueue
+}
+
+// 出队
+func QueueOut(cyQueue []ChengYuQueueItem) ([]ChengYuQueueItem, ChengYuQueueItem, error) {
+	l := len(cyQueue)
+	if l <= 0 {
+		return cyQueue, ChengYuQueueItem{}, errors.New("empty queue")
+	}
+	out := cyQueue[l-1]
+	return cyQueue[0 : l-1], out, nil
+}
+
+func Table4Setting(table [][]int) ([]Blank, []ChengYu, error) {
+	setting := []Blank{}
+	allLineCY := []ChengYu{}
+	allColCY := []ChengYu{}
+	sortIndex := 0
+	cyMap := make(map[string]int, 0)
+	sortedCyPos := make([]ChengYu, 0)
+	cyQueue := make([]ChengYuQueueItem, 0)
+	crossPoint := make(map[string]bool, 0)
+	for index, item := range table {
+		cy := GetChengYu(index, item, false)
+		if len(cy) > 0 {
+			allLineCY = append(allLineCY, cy...)
+		}
+	}
+	for i := 0; i < TableMaxLen; i++ {
+		column, _ := GetSliceXN(table, i)
+		cyCol := GetChengYu(i, column, true)
+		if len(cyCol) > 0 {
+			allColCY = append(allColCY, cyCol...)
+		}
+	}
+	loopSettingPos(allColCY, allLineCY, &cyQueue)
+	//fmt.Println("cyQueue: ")
+	//for _, item := range cyQueue {
+	//	fmt.Printf("%v\n", item)
+	//}
+	cyOutQueue(allColCY, allLineCY, &setting, &sortIndex, cyMap, &sortedCyPos, crossPoint, &cyQueue)
+
+	sort.Sort(BlankSort(setting))
+
+	//剩下的无相交的独立行成语计入
+	for _, aloneLine := range allLineCY {
+		keyAloneLine := fmt.Sprintf("%s", fmt.Sprint(aloneLine))
+		if _, ok := cyMap[keyAloneLine]; !ok {
+
+			cyMap[keyAloneLine] = sortIndex
+			sortIndex++
+			sortedCyPos = append(sortedCyPos, aloneLine)
+			setting = append(setting, Blank{
+				Head:           -1,
+				Foot:           -1,
+				HeadUseCyIndex: cyMap[keyAloneLine],
+				FootUseCyIndex: -1,
+			})
+		}
+	}
+	for _, aloneCol := range allColCY {
+		keyAloneCol := fmt.Sprintf("%s", fmt.Sprint(aloneCol))
+		if _, ok := cyMap[keyAloneCol]; !ok {
+
+			cyMap[keyAloneCol] = sortIndex
+			sortIndex++
+			sortedCyPos = append(sortedCyPos, aloneCol)
+			setting = append(setting, Blank{
+				Head:           -1,
+				Foot:           -1,
+				HeadUseCyIndex: cyMap[keyAloneCol],
+				FootUseCyIndex: -1,
+			})
+		}
+	}
+
+	fmt.Println("cyMap: ")
+	for k, v := range cyMap {
+		fmt.Printf("%v, %v\n", k, v)
+	}
+
+	fmt.Println("setting: ")
+	for k, v := range setting {
+		fmt.Printf("%v, %+v\n", k, v)
+	}
+
+	//配置分组
+	lastFootUseCyIndex := 0
+	groupSetting := [][]Blank{}
+	formattedSetting := []Blank{}
+	for _, val := range setting {
+		if lastFootUseCyIndex == 0 || lastFootUseCyIndex != val.FootUseCyIndex {
+			groupSetting = append(groupSetting, []Blank{val})
+		} else if val.FootUseCyIndex == lastFootUseCyIndex {
+			length := len(groupSetting)
+			groupSetting[length-1] = append(groupSetting[length-1], val)
+		}
+		lastFootUseCyIndex = val.FootUseCyIndex
+	}
+
+	//分组配置格式化
+	for _, item := range groupSetting {
+		if len(item) <= 0 {
+			continue
+		} else if len(item) == 1 {
+			formattedSetting = append(formattedSetting, item[0])
+		} else {
+			temp := Blank{
+				HeadFoot: make([]BlankItem, 0),
+			}
+			for _, val := range item {
+				temp.HeadFoot = append(temp.HeadFoot, BlankItem{HeadUseCyIndex: val.HeadUseCyIndex, FootUseCyIndex: val.FootUseCyIndex, Head: val.Head, Foot: val.Foot})
+			}
+			formattedSetting = append(formattedSetting, temp)
+		}
+	}
+	return formattedSetting, sortedCyPos, nil
+}
+
+func loopSettingPos(allColCY, allLineCY []ChengYu, cyQueue *[]ChengYuQueueItem) {
+
+	for _, col := range allColCY {
+		queueItem := ChengYuQueueItem{
+			Cy:   col,
+			Type: CyTypeCol,
+		}
+		*cyQueue = QueueIn(queueItem, *cyQueue)
+		cyInQueue(allColCY, allLineCY, queueItem, CyTypeCol, cyQueue)
+		for _, line := range allLineCY {
+			lineQueueItem := ChengYuQueueItem{
+				Cy:   line,
+				Type: CyTypeLine,
+			}
+			*cyQueue = QueueIn(lineQueueItem, *cyQueue)
+			cyInQueue(allColCY, allLineCY, lineQueueItem, CyTypeLine, cyQueue)
+		}
+	}
+}
+
+func cyInQueue(allColCY, allLineCY []ChengYu, queueItem ChengYuQueueItem, yuType int, cyQueue *[]ChengYuQueueItem) {
+	if yuType == CyTypeCol {
+		for _, item := range allLineCY {
+			if _, _, _, err := getHitPoint(queueItem.Cy, item); err == nil {
+				*cyQueue = QueueIn(ChengYuQueueItem{Cy: item, Type: CyTypeLine}, *cyQueue)
+			}
+		}
+	} else {
+		for _, item := range allColCY {
+			if _, _, _, err := getHitPoint(item, queueItem.Cy); err == nil {
+				*cyQueue = QueueIn(ChengYuQueueItem{Cy: item, Type: CyTypeCol}, *cyQueue)
+			}
+		}
+	}
+}
+
+func cyOutQueue(allColCY, allLineCY []ChengYu, setting *[]Blank, sortIndex *int, cyMap map[string]int, sortedCyPos *[]ChengYu, crossPoint map[string]bool, cyQueue *[]ChengYuQueueItem) {
+
+	var err error
+	var out ChengYuQueueItem
+	for {
+		if len(*cyQueue) <= 0 {
+			break
+		}
+		*cyQueue, out, err = QueueOut(*cyQueue)
+		if err != nil {
+			fmt.Println("cyOutQueue err:", err)
+		}
+		if out.Type == CyTypeCol {
+			keyCol := fmt.Sprintf("%s", fmt.Sprint(out.Cy))
+			for _, item := range allLineCY {
+				var cell CyCell
+				var colPos, linePos int
+				if colPos, linePos, cell, err = getHitPoint(out.Cy, item); err == nil {
+					keyLine := fmt.Sprintf("%s", fmt.Sprint(item))
+					if _, ok := cyMap[keyCol]; !ok {
+						*sortedCyPos = append(*sortedCyPos, out.Cy)
+						cyMap[keyCol] = *sortIndex
+						*sortIndex++
+					}
+					if _, ok := cyMap[keyLine]; !ok {
+						*sortedCyPos = append(*sortedCyPos, item)
+						cyMap[keyLine] = *sortIndex
+						*sortIndex++
+					}
+					pointKey := fmt.Sprintf("%d,%d", cell.X, cell.Y)
+					if !crossPoint[pointKey] {
+						*setting = append(*setting, Blank{
+							Head:           colPos,
+							Foot:           linePos,
+							HeadUseCyIndex: cyMap[keyCol],
+							FootUseCyIndex: cyMap[keyLine],
+						})
+					}
+					crossPoint[pointKey] = true
+				}
+			}
+		} else {
+			keyLine := fmt.Sprintf("%s", fmt.Sprint(out.Cy))
+			for _, item := range allColCY {
+				var cell CyCell
+				var colPos, linePos int
+				if colPos, linePos, cell, err = getHitPoint(item, out.Cy); err == nil {
+					keyCol := fmt.Sprintf("%s", fmt.Sprint(item))
+					if _, ok := cyMap[keyCol]; !ok {
+						*sortedCyPos = append(*sortedCyPos, item)
+						cyMap[keyCol] = *sortIndex
+						*sortIndex++
+					}
+					if _, ok := cyMap[keyLine]; !ok {
+						*sortedCyPos = append(*sortedCyPos, out.Cy)
+						cyMap[keyLine] = *sortIndex
+						*sortIndex++
+					}
+					pointKey := fmt.Sprintf("%d,%d", cell.X, cell.Y)
+					if !crossPoint[pointKey] {
+						*setting = append(*setting, Blank{
+							Head:           linePos,
+							Foot:           colPos,
+							HeadUseCyIndex: cyMap[keyLine],
+							FootUseCyIndex: cyMap[keyCol],
+						})
+					}
+					crossPoint[pointKey] = true
+				}
+			}
+		}
+	}
 }

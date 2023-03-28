@@ -29,17 +29,17 @@ func main() {
 	}
 	fmt.Println("表格模板：")
 	//demo1
-	//table := [][]int{
-	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	//	{0, 1, 0, 1, 0, 0, 0, 0, 0},
-	//	{0, 1, 1, 1, 1, 0, 0, 0, 0},
-	//	{0, 1, 1, 1, 1, 0, 0, 0, 0},
-	//	{0, 1, 1, 1, 1, 0, 0, 0, 0},
-	//	{0, 0, 1, 0, 1, 0, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	//}
+	table := [][]int{
+		{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 1, 0, 1, 0, 0, 0, 0, 0},
+		{0, 1, 1, 1, 1, 0, 0, 0, 0},
+		{0, 1, 1, 1, 1, 0, 0, 0, 0},
+		{0, 1, 1, 1, 1, 0, 0, 0, 0},
+		{0, 0, 1, 0, 1, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 1, 1, 1, 1},
+	}
 	//
 	//v2Setting := []chengyu.Blank{
 	//	{HeadUseCyIndex: 0, Head: 2, FootUseCyIndex: 1, Foot: 1},
@@ -63,17 +63,17 @@ func main() {
 	//}
 
 	//demo2
-	table := [][]int{
-		{1, 1, 1, 1, 0, 0, 0, 0, 0},
-		{0, 0, 1, 1, 1, 1, 0, 0, 0},
-		{0, 0, 1, 0, 1, 0, 1, 0, 0},
-		{0, 0, 1, 0, 1, 1, 1, 1, 0},
-		{0, 0, 0, 0, 1, 0, 1, 0, 0},
-		{0, 0, 0, 1, 0, 1, 1, 1, 1},
-		{0, 0, 0, 1, 0, 1, 0, 1, 0},
-		{0, 0, 1, 1, 1, 1, 0, 1, 0},
-		{0, 0, 0, 1, 0, 1, 0, 1, 0},
-	}
+	//table := [][]int{
+	//	{1, 1, 1, 1, 0, 0, 0, 0, 0},
+	//	{0, 0, 1, 1, 1, 1, 0, 0, 0},
+	//	{0, 0, 1, 0, 1, 0, 1, 0, 0},
+	//	{0, 0, 1, 0, 1, 1, 1, 1, 0},
+	//	{0, 0, 0, 0, 1, 0, 1, 0, 0},
+	//	{0, 0, 0, 1, 0, 1, 1, 1, 1},
+	//	{0, 0, 0, 1, 0, 1, 0, 1, 0},
+	//	{0, 0, 1, 1, 1, 1, 0, 1, 0},
+	//	{0, 0, 0, 1, 0, 1, 0, 1, 0},
+	//}
 	//table := [][]int{
 	//	{0, 0, 1, 0, 0, 0, 0, 0, 0},
 	//	{0, 0, 1, 1, 1, 1, 0, 0, 0},
@@ -97,15 +97,16 @@ func main() {
 		fmt.Println("表格模板非法！")
 		return
 	}
-	v2Setting, sortedCyPos, _ := chengyu.Table2Setting(table)
+	v2Setting, sortedCyPos, _ := chengyu.Table4Setting(table)
 	fmt.Println("v2Setting")
 	for _, item := range v2Setting {
 		fmt.Printf("%+v\n", item)
 	}
 
-	//for _, val := range sortedCyPos {
-	//	fmt.Printf("%+v\n", val)
-	//}
+	fmt.Println("sortedCyPos")
+	for _, val := range sortedCyPos {
+		fmt.Printf("%+v\n", val)
+	}
 	allCY := []chengyu.ChengYu{}
 	allLineCY := []chengyu.ChengYu{}
 	allColCY := []chengyu.ChengYu{}
@@ -149,7 +150,7 @@ func main() {
 	result := make(map[string]bool, 0)
 	selectedMap := make(map[string]bool, 0)
 	chengyu.RecursionGenerate(chengYuMap, v2Setting, len(allCY), 0, []string{}, result, selectedMap)
-
+	fmt.Println("result: ", result)
 	//TODO result的结果集中不应该有重复的才对，暂时通过二次过滤
 
 	filter := [][]string{}
