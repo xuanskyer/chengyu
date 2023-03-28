@@ -59,15 +59,15 @@ func main() {
 		return
 	}
 	v2Setting, sortedCyPos, _ := chengyu.Table4Setting(table)
-	fmt.Println("v2Setting")
-	for _, item := range v2Setting {
-		fmt.Printf("%+v\n", item)
-	}
-
-	fmt.Println("sortedCyPos")
-	for _, val := range sortedCyPos {
-		fmt.Printf("%+v\n", val)
-	}
+	//fmt.Println("v2Setting")
+	//for _, item := range v2Setting {
+	//	fmt.Printf("%+v\n", item)
+	//}
+	//
+	//fmt.Println("sortedCyPos")
+	//for _, val := range sortedCyPos {
+	//	fmt.Printf("%+v\n", val)
+	//}
 	allCY := []chengyu.ChengYu{}
 	allLineCY := []chengyu.ChengYu{}
 	allColCY := []chengyu.ChengYu{}
