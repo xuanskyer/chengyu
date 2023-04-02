@@ -31,26 +31,26 @@ func main() {
 	//demo1
 	//table := [][]int{
 	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 1, 1, 1, 1},
-	//	{0, 1, 0, 1, 0, 0, 0, 0, 1},
-	//	{0, 1, 1, 1, 1, 0, 0, 0, 1},
-	//	{0, 1, 1, 1, 1, 0, 0, 0, 1},
-	//	{0, 1, 1, 1, 1, 0, 1, 0, 0},
-	//	{0, 0, 1, 0, 1, 0, 1, 0, 0},
-	//	{0, 0, 0, 0, 0, 0, 1, 0, 0},
-	//	{1, 1, 1, 1, 0, 1, 1, 1, 1},
+	//	{0, 0, 0, 0, 0, 2, 2, 2, 2},
+	//	{0, 2, 0, 2, 0, 0, 0, 0, 2},
+	//	{0, 2, 2, 2, 2, 0, 0, 0, 2},
+	//	{0, 2, 2, 2, 2, 0, 0, 0, 2},
+	//	{0, 2, 2, 2, 2, 0, 2, 0, 0},
+	//	{0, 0, 2, 0, 2, 0, 2, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 2, 0, 0},
+	//	{2, 2, 2, 2, 0, 2, 2, 2, 2},
 	//}
 	//demo2
 	table := [][]int{
-		{1, 1, 1, 1, 0, 0, 0, 0, 0},
-		{0, 0, 1, 1, 1, 1, 0, 0, 0},
-		{0, 0, 1, 0, 1, 0, 1, 0, 0},
-		{0, 0, 1, 0, 1, 1, 1, 1, 0},
-		{0, 0, 0, 0, 1, 0, 1, 0, 0},
-		{0, 0, 0, 1, 0, 1, 1, 1, 1},
-		{0, 0, 0, 1, 0, 1, 0, 1, 0},
-		{0, 0, 1, 1, 1, 1, 0, 1, 0},
-		{0, 0, 0, 1, 0, 1, 0, 1, 0},
+		{2, 2, 1, 2, 0, 0, 0, 0, 0},
+		{0, 0, 2, 2, 1, 2, 0, 0, 0},
+		{0, 0, 2, 0, 2, 0, 2, 0, 0},
+		{0, 0, 2, 0, 2, 2, 1, 2, 0},
+		{0, 0, 0, 0, 2, 0, 2, 0, 0},
+		{0, 0, 0, 2, 0, 1, 2, 1, 2},
+		{0, 0, 0, 2, 0, 2, 0, 2, 0},
+		{0, 0, 2, 1, 2, 1, 0, 2, 0},
+		{0, 0, 0, 2, 0, 2, 0, 2, 0},
 	}
 
 	isValidTable := chengyu.IsValidTemplate(table)
@@ -58,19 +58,11 @@ func main() {
 		fmt.Println("表格模板非法！")
 		return
 	}
-	v2Setting, sortedCyPos, _ := chengyu.Table4Setting(table)
-	//fmt.Println("v2Setting")
-	//for _, item := range v2Setting {
-	//	fmt.Printf("%+v\n", item)
-	//}
-	//
-	//fmt.Println("sortedCyPos")
-	//for _, val := range sortedCyPos {
-	//	fmt.Printf("%+v\n", val)
-	//}
-	allCY := []chengyu.ChengYu{}
-	allLineCY := []chengyu.ChengYu{}
-	allColCY := []chengyu.ChengYu{}
+	setting, sortedCyPos, _ := chengyu.Init(table)
+
+	var allCY []chengyu.ChengYu
+	var allLineCY []chengyu.ChengYu
+	var allColCY []chengyu.ChengYu
 	for index, item := range table {
 		cy := chengyu.GetChengYu(index, item, false)
 		if len(cy) > 0 {
@@ -96,9 +88,9 @@ func main() {
 	// 递归处理，开始生成成语序列并判断
 	result := make(map[string]bool, 0)
 	selectedMap := make(map[string]bool, 0)
-	chengyu.RecursionGenerate(chengYuMap, v2Setting, len(allCY), 0, []string{}, result, selectedMap)
+	chengyu.RecursionGenerate(chengYuMap, setting, len(allCY), 0, []string{}, result, selectedMap)
 
-	filter := [][]string{}
+	var filter [][]string
 	filterMap := make(map[string]bool, 0)
 	for cyStr, _ := range result {
 		cyList := strings.Split(cyStr, ",")
@@ -106,7 +98,7 @@ func main() {
 		if _, ok := filterMap[key]; ok {
 			continue
 		}
-		isValid := chengyu.Check(cyList, v2Setting, len(sortedCyPos))
+		isValid := chengyu.Check(cyList, setting, len(sortedCyPos))
 		if isValid {
 			filter = append(filter, cyList)
 		}
@@ -118,16 +110,15 @@ func main() {
 	_, _ = fmt.Fprintln(f, filter)
 
 	elapsed := time.Since(start)
-	fmt.Println("结果示例：")
+	fmt.Println("\n结果示例：")
 	index := 0
 	for cyStr, _ := range result {
 		if index < 2 {
 			cyList := strings.Split(cyStr, ",")
 			chengyu.PrintResult2Table(cyList, sortedCyPos)
-			fmt.Println("\n")
 		}
 		index++
 		break
 	}
-	fmt.Printf("该函数执行完成耗时：%v，答案数：%d, %d\n", elapsed, len(result), len(filter))
+	fmt.Printf("\n该函数执行完成耗时：%v，答案数：%d, %d\n", elapsed, len(result), len(filter))
 }
