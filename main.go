@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/chengyu/chengyu"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -31,14 +30,14 @@ func main() {
 	//demo1
 	//table := [][]int{
 	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
-	//	{0, 0, 0, 0, 0, 2, 2, 2, 2},
-	//	{0, 2, 0, 2, 0, 0, 0, 0, 2},
-	//	{0, 2, 2, 2, 2, 0, 0, 0, 2},
-	//	{0, 2, 2, 2, 2, 0, 0, 0, 2},
-	//	{0, 2, 2, 2, 2, 0, 2, 0, 0},
-	//	{0, 0, 2, 0, 2, 0, 2, 0, 0},
-	//	{0, 0, 0, 0, 0, 0, 2, 0, 0},
-	//	{2, 2, 2, 2, 0, 2, 2, 2, 2},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
+	//	{0, 2, 0, 2, 0, 0, 0, 0, 0},
+	//	{0, 2, 2, 2, 2, 0, 0, 0, 0},
+	//	{0, 2, 2, 2, 2, 0, 0, 0, 0},
+	//	{0, 2, 2, 2, 2, 0, 0, 0, 0},
+	//	{0, 0, 2, 0, 2, 0, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
 	//}
 	//demo2
 	table := [][]int{
@@ -52,73 +51,49 @@ func main() {
 		{0, 0, 2, 1, 2, 1, 0, 2, 0},
 		{0, 0, 0, 2, 0, 2, 0, 2, 0},
 	}
+	//demo3
+	//table := [][]int{
+	//	{2, 2, 1, 2, 0, 0, 0, 0, 0},
+	//	{0, 0, 2, 2, 1, 2, 0, 0, 0},
+	//	{0, 0, 2, 0, 2, 0, 0, 0, 0},
+	//	{0, 0, 2, 0, 2, 2, 1, 2, 0},
+	//	{0, 0, 0, 0, 2, 0, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
+	//	{0, 0, 0, 0, 0, 0, 0, 0, 0},
+	//}
 
-	isValidTable := chengyu.IsValidTemplate(table)
-	if !isValidTable {
-		fmt.Println("表格模板非法！")
+	//初始化
+	if err := chengyu.Init(table, ChengYuList); err != nil {
+		fmt.Println("err: ", err)
 		return
 	}
-	setting, sortedCyPos, _ := chengyu.Init(table)
 
-	var allCY []chengyu.ChengYu
-	var allLineCY []chengyu.ChengYu
-	var allColCY []chengyu.ChengYu
-	for index, item := range table {
-		cy := chengyu.GetChengYu(index, item, false)
-		if len(cy) > 0 {
-			allLineCY = append(allLineCY, cy...)
-		}
-	}
-	for i := 0; i < chengyu.TableMaxLen; i++ {
-		column, _ := chengyu.GetSliceXN(table, i)
-		cyCol := chengyu.GetChengYu(i, column, true)
-		if len(cyCol) > 0 {
-			allColCY = append(allColCY, cyCol...)
-		}
-	}
-	allCY = append(append(allCY, allColCY...), allLineCY...)
-
-	// 使用 map 存储成语列表，方便去重
-	chengYuMap := make(map[string]bool)
-	for _, item := range ChengYuList {
-		chengYuMap[item] = true
-	}
+	// 计算并存储结果
 	f, _ := os.OpenFile("result.txt", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	_, _ = fmt.Fprintln(f, "")
-	// 递归处理，开始生成成语序列并判断
 	result := make(map[string]bool, 0)
 	selectedMap := make(map[string]bool, 0)
-	chengyu.RecursionGenerate(chengYuMap, setting, len(allCY), 0, []string{}, result, selectedMap)
+	chengyu.RecursionGenerate(0, []string{}, result, selectedMap)
 
-	var filter [][]string
-	filterMap := make(map[string]bool, 0)
-	for cyStr, _ := range result {
-		cyList := strings.Split(cyStr, ",")
-		key := fmt.Sprint(cyList)
-		if _, ok := filterMap[key]; ok {
-			continue
-		}
-		isValid := chengyu.Check(cyList, setting, len(sortedCyPos))
-		if isValid {
-			filter = append(filter, cyList)
-		}
-		filterMap[key] = true
-	}
-	//每次执行前，先清空文件内容
-	f, _ = os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	f, _ = os.OpenFile("result.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600) //每次执行前，先清空文件内容
 	defer f.Close()
-	_, _ = fmt.Fprintln(f, filter)
+	_, _ = fmt.Fprintln(f, result)
 
-	elapsed := time.Since(start)
+	//打印结果示例
 	fmt.Println("\n结果示例：")
 	index := 0
 	for cyStr, _ := range result {
 		if index < 2 {
-			cyList := strings.Split(cyStr, ",")
-			chengyu.PrintResult2Table(cyList, sortedCyPos)
+			tableXyWord, _ := chengyu.TableXyWordSet(cyStr)
+			for _, item := range tableXyWord {
+				fmt.Printf("%+v\n", item)
+			}
 		}
 		index++
 		break
 	}
-	fmt.Printf("\n该函数执行完成耗时：%v，答案数：%d, %d\n", elapsed, len(result), len(filter))
+	elapsed := time.Since(start)
+	fmt.Printf("\n该函数执行完成耗时：%v，答案数：%d\n", elapsed, len(result))
 }

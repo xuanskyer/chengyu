@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	TableMaxLen = 9
+	TableMaxLen = 9 //表格边长
 
 	P9rNil      = 0 //placeholder 占位符状态：未使用
 	P9rNilStr   = "  "
@@ -26,7 +26,17 @@ const (
 	MaxResultCount = 499
 )
 
-var TableXyStatus map[string]int //坐标状态
+var (
+	tableXyStatus = make(map[string]int, 0) //坐标状态
+
+	setting     []Blank
+	sortedCyPos = make([]ChengYu, 0)
+	chengYuMap  = make(map[string]bool)
+	allCY       []ChengYu
+	allCYLen    = 0
+	allLineCY   []ChengYu
+	allColCY    []ChengYu
+)
 
 type CyCell struct {
 	X int `json:"x"`
@@ -55,19 +65,22 @@ type BlankItem struct {
 }
 
 // Init 表格坐标转化成遍历所需配置
-func Init(table [][]int) ([]Blank, []ChengYu, error) {
-	TableXyStatus = make(map[string]int, 0)
-	var setting []Blank
-	var allLineCY []ChengYu
-	var allColCY []ChengYu
+func Init(table [][]int, chengYuList []string) error {
+	isValidTable := IsValidTemplate(table)
+	if !isValidTable {
+		return errors.New("表格模板非法！")
+	}
 	sortIndex := 0
 	cyMap := make(map[string]int, 0)
-	sortedCyPos := make([]ChengYu, 0)
 	cyQueue := make([]QueueItem, 0)
 	crossPoint := make(map[string]bool, 0)
+	// 使用 map 存储成语列表，方便去重
+	for _, item := range chengYuList {
+		chengYuMap[item] = true
+	}
 	for index, item := range table {
 		for k, v := range item {
-			TableXyStatus[fmt.Sprintf("%d,%d", index, k)] = v
+			tableXyStatus[fmt.Sprintf("%d,%d", index, k)] = v
 		}
 		cy := GetChengYu(index, item, false)
 		if len(cy) > 0 {
@@ -81,6 +94,9 @@ func Init(table [][]int) ([]Blank, []ChengYu, error) {
 			allColCY = append(allColCY, cyCol...)
 		}
 	}
+
+	allCY = append(append(allCY, allColCY...), allLineCY...)
+	allCYLen = len(allCY)
 	loopSettingPos(allColCY, allLineCY, &cyQueue)
 
 	cyOutQueue(allColCY, allLineCY, &setting, &sortIndex, cyMap, &sortedCyPos, crossPoint, &cyQueue)
@@ -157,7 +173,7 @@ func Init(table [][]int) ([]Blank, []ChengYu, error) {
 			formattedSetting = append(formattedSetting, temp)
 		}
 	}
-	return formattedSetting, sortedCyPos, nil
+	return nil
 }
 
 func GetChengYuPosStr(begin, end int, item string) (string, error) {
@@ -177,7 +193,8 @@ func GetChengYuPosStr(begin, end int, item string) (string, error) {
 	return han, nil
 }
 
-func Check(ones []string, setting []Blank, count int) bool {
+func Check(ones []string) bool {
+	count := len(sortedCyPos)
 	lengthOnes := len(ones)
 	if lengthOnes != count {
 		return false
@@ -227,7 +244,7 @@ func Check(ones []string, setting []Blank, count int) bool {
 	return true
 }
 
-func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCount, depth int, selectedOnes []string,
+func RecursionGenerate(depth int, selectedOnes []string,
 	result map[string]bool, selectedMap map[string]bool) {
 
 	if len(result) > MaxResultCount {
@@ -240,12 +257,12 @@ func RecursionGenerate(chengYuMap map[string]bool, blankSetting []Blank, validCo
 	if len(onesMap) != len(selectedOnes) {
 		return
 	}
-	if len(selectedOnes) == validCount {
+	if len(selectedOnes) == allCYLen {
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
 		key := strings.Join(selectedOnes, ",")
 		_, ok := selectedMap[key]
 		if !ok {
-			if Check(selectedOnes, blankSetting, validCount) {
+			if Check(selectedOnes) {
 				result[strings.Join(selectedOnes, ",")] = true
 			}
 			key = strings.Join(selectedOnes, ",")
@@ -263,7 +280,7 @@ ChengYuMapFor:
 			if isExisted(c, selectedOnes) {
 				continue
 			}
-			blank := blankSetting[depth-1]
+			blank := setting[depth-1]
 			if len(blank.HeadFoot) > 0 {
 				hitCount := 0
 				for _, val := range blank.HeadFoot {
@@ -285,8 +302,8 @@ ChengYuMapFor:
 				}
 				if depth-2 >= 0 {
 					//预判断下一个成语是否和当前成语相交
-					if blankSetting[depth-2].FootUseCyIndex+1 < blank.FootUseCyIndex && blank.HeadUseCyIndex >= len(selectedOnes) {
-						RecursionGenerate(chengYuMap, blankSetting, validCount, depth, append(selectedOnes, c), result, selectedMap)
+					if setting[depth-2].FootUseCyIndex+1 < blank.FootUseCyIndex && blank.HeadUseCyIndex >= len(selectedOnes) {
+						RecursionGenerate(depth, append(selectedOnes, c), result, selectedMap)
 						continue
 					}
 				}
@@ -305,7 +322,7 @@ ChengYuMapFor:
 
 		// 递归处理下一个空白处
 	HitAndRecursion:
-		RecursionGenerate(chengYuMap, blankSetting, validCount, depth+1, append(selectedOnes, c), result, selectedMap)
+		RecursionGenerate(depth+1, append(selectedOnes, c), result, selectedMap)
 	}
 }
 
@@ -342,52 +359,55 @@ func IsValidTemplate(table [][]int) bool {
 	return true
 }
 
-// PrintResult2Table 打印输出一个结果
-func PrintResult2Table(one []string, sortedCyPos []ChengYu) {
-	if len(one) <= 0 {
-		return
+// TableXyWordSet 打印输出一个结果
+func TableXyWordSet(cyStr string) ([TableMaxLen][TableMaxLen]string, error) {
+
+	tableXyWord := [TableMaxLen][TableMaxLen]string{} //坐标字
+	if cyStr == "" {
+		return tableXyWord, errors.New("empty cy str")
 	}
-	if len(one) != len(sortedCyPos) {
-		return
+	cyList := strings.Split(cyStr, ",")
+	if len(cyList) <= 0 {
+		return tableXyWord, errors.New("empty cy str")
+	}
+	if len(cyList) != len(sortedCyPos) {
+		return tableXyWord, errors.New("invalid cy str")
 	}
 
-	tableString := [TableMaxLen][TableMaxLen]string{}
-	for k, v := range tableString {
+	for k, v := range tableXyWord {
 		for kk, _ := range v {
-			if TableXyStatus[fmt.Sprintf("%d,%d", k, kk)] == P9rNil {
-				tableString[k][kk] = P9rNilStr
-			} else if TableXyStatus[fmt.Sprintf("%d,%d", k, kk)] == P9rBlank {
-				tableString[k][kk] = P9rBlankStr
+			if tableXyStatus[fmt.Sprintf("%d,%d", k, kk)] == P9rNil {
+				tableXyWord[k][kk] = P9rNilStr
+			} else if tableXyStatus[fmt.Sprintf("%d,%d", k, kk)] == P9rBlank {
+				tableXyWord[k][kk] = P9rBlankStr
 			} else {
-				tableString[k][kk] = P9rUsedStr
+				tableXyWord[k][kk] = P9rUsedStr
 			}
 		}
 	}
-	for index, cy := range one {
+	for index, cy := range cyList {
 		point := sortedCyPos[index]
 		if len(point) < CyLen || len(cy) < CyLen {
 			continue
 		}
-		if tableString[point[0].Y][point[0].X] == P9rUsedStr {
+		if tableXyWord[point[0].Y][point[0].X] == P9rUsedStr {
 			word1, _ := GetChengYuPosStr(0, 1, cy)
-			tableString[point[0].Y][point[0].X] = word1
+			tableXyWord[point[0].Y][point[0].X] = word1
 		}
-		if tableString[point[1].Y][point[1].X] == P9rUsedStr {
+		if tableXyWord[point[1].Y][point[1].X] == P9rUsedStr {
 			word2, _ := GetChengYuPosStr(1, 2, cy)
-			tableString[point[1].Y][point[1].X] = word2
+			tableXyWord[point[1].Y][point[1].X] = word2
 		}
-		if tableString[point[2].Y][point[2].X] == P9rUsedStr {
+		if tableXyWord[point[2].Y][point[2].X] == P9rUsedStr {
 			word3, _ := GetChengYuPosStr(2, 3, cy)
-			tableString[point[2].Y][point[2].X] = word3
+			tableXyWord[point[2].Y][point[2].X] = word3
 		}
-		if tableString[point[3].Y][point[3].X] == P9rUsedStr {
+		if tableXyWord[point[3].Y][point[3].X] == P9rUsedStr {
 			word4, _ := GetChengYuPosStr(3, 4, cy)
-			tableString[point[3].Y][point[3].X] = word4
+			tableXyWord[point[3].Y][point[3].X] = word4
 		}
 	}
-	for _, item := range tableString {
-		fmt.Printf("%+v\n", item)
-	}
+	return tableXyWord, nil
 }
 
 // GetSliceXN 竖向取二维切片的第N列
