@@ -23,28 +23,28 @@ const (
 	CyTypeCol  = 0
 	CyTypeLine = 1
 
-	MaxResultCount = 499
+	MaxResultCount = 500
 )
 
 var (
-	tableXyStatus = make(map[string]int, 0) //坐标状态
-
-	setting     []Blank
-	sortedCyPos = make([]ChengYu, 0)
-	chengYuMap  = make(map[string]bool)
-	allCY       []ChengYu
-	allCYLen    = 0
-	allLineCY   []ChengYu
-	allColCY    []ChengYu
+	tableXyStatus    = make(map[string]int, 0) //坐标状态
+	formattedSetting []Blank                   //表格格式化后的遍历配置列表
+	sortedCyPos      = make([]ChengYu, 0)      //成语位置出现顺序列表
+	sortedCyPosLen   = 0                       //成语位置出现顺序列表长度
+	chengYuMap       = make(map[string]bool)   //成语库map
+	allCY            []ChengYu                 //所有成语位置列表
+	allCYLen         = 0                       //所有成语位置列表长度
+	allLineCY        []ChengYu                 //所有行中的成语位置列表
+	allColCY         []ChengYu                 //所有列中的成语位置列表
 )
 
-type CyCell struct {
+type CyCell struct { //位置坐标
 	X int `json:"x"`
 	Y int `json:"y"`
 }
 
-type ChengYu []CyCell
-type QueueItem struct {
+type ChengYu []CyCell   //成语
+type QueueItem struct { //队列元素
 	Cy   ChengYu `json:"cy"`
 	Type int     `json:"type"`
 }
@@ -70,6 +70,7 @@ func Init(table [][]int, chengYuList []string) error {
 	if !isValidTable {
 		return errors.New("表格模板非法！")
 	}
+	var setting []Blank
 	sortIndex := 0
 	cyMap := make(map[string]int, 0)
 	cyQueue := make([]QueueItem, 0)
@@ -132,7 +133,7 @@ func Init(table [][]int, chengYuList []string) error {
 			})
 		}
 	}
-
+	sortedCyPosLen = len(sortedCyPos)
 	for index, info := range setting {
 		if info.HeadUseCyIndex > info.FootUseCyIndex {
 			setting[index].HeadUseCyIndex, setting[index].FootUseCyIndex = setting[index].FootUseCyIndex, setting[index].HeadUseCyIndex
@@ -145,7 +146,6 @@ func Init(table [][]int, chengYuList []string) error {
 	//配置分组
 	lastFootUseCyIndex := 0
 	var groupSetting [][]Blank
-	var formattedSetting []Blank
 	for _, val := range setting {
 		if lastFootUseCyIndex == 0 || lastFootUseCyIndex != val.FootUseCyIndex {
 			groupSetting = append(groupSetting, []Blank{val})
@@ -194,9 +194,8 @@ func GetChengYuPosStr(begin, end int, item string) (string, error) {
 }
 
 func Check(ones []string) bool {
-	count := len(sortedCyPos)
 	lengthOnes := len(ones)
-	if lengthOnes != count {
+	if lengthOnes != sortedCyPosLen {
 		return false
 	}
 	onesMap := make(map[string]bool, 0)
@@ -209,7 +208,7 @@ func Check(ones []string) bool {
 
 	var c1, c2 string
 	var e1, e2 error
-	for index, info := range setting {
+	for index, info := range formattedSetting {
 		if len(info.HeadFoot) > 0 {
 			for _, val := range info.HeadFoot {
 				c1, e1 = GetChengYuPosStr(val.Head-1, val.Head, ones[val.HeadUseCyIndex])
@@ -227,7 +226,7 @@ func Check(ones []string) bool {
 			}
 			if index-1 >= 0 {
 				//预判断下一个成语是否和当前成语相交
-				if setting[index-1].FootUseCyIndex+1 < info.FootUseCyIndex {
+				if formattedSetting[index-1].FootUseCyIndex+1 < info.FootUseCyIndex {
 					continue
 				}
 			}
@@ -244,10 +243,9 @@ func Check(ones []string) bool {
 	return true
 }
 
-func RecursionGenerate(depth int, selectedOnes []string,
-	result map[string]bool, selectedMap map[string]bool) {
+func RecursionGenerate(depth int, selectedOnes []string, result map[string]bool, selectedMap map[string]bool) {
 
-	if len(result) > MaxResultCount {
+	if len(result) > MaxResultCount-1 {
 		return
 	}
 	onesMap := make(map[string]bool, 0)
@@ -280,7 +278,7 @@ ChengYuMapFor:
 			if isExisted(c, selectedOnes) {
 				continue
 			}
-			blank := setting[depth-1]
+			blank := formattedSetting[depth-1]
 			if len(blank.HeadFoot) > 0 {
 				hitCount := 0
 				for _, val := range blank.HeadFoot {
@@ -302,7 +300,7 @@ ChengYuMapFor:
 				}
 				if depth-2 >= 0 {
 					//预判断下一个成语是否和当前成语相交
-					if setting[depth-2].FootUseCyIndex+1 < blank.FootUseCyIndex && blank.HeadUseCyIndex >= len(selectedOnes) {
+					if formattedSetting[depth-2].FootUseCyIndex+1 < blank.FootUseCyIndex && blank.HeadUseCyIndex >= len(selectedOnes) {
 						RecursionGenerate(depth, append(selectedOnes, c), result, selectedMap)
 						continue
 					}
@@ -370,7 +368,7 @@ func TableXyWordSet(cyStr string) ([TableMaxLen][TableMaxLen]string, error) {
 	if len(cyList) <= 0 {
 		return tableXyWord, errors.New("empty cy str")
 	}
-	if len(cyList) != len(sortedCyPos) {
+	if len(cyList) != sortedCyPosLen {
 		return tableXyWord, errors.New("invalid cy str")
 	}
 
