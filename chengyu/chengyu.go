@@ -36,6 +36,7 @@ var (
 	allCYLen         = 0                       //所有成语位置列表长度
 	allLineCY        []ChengYu                 //所有行中的成语位置列表
 	allColCY         []ChengYu                 //所有列中的成语位置列表
+	maxResultCount   = MaxResultCount
 )
 
 type CyCell struct { //位置坐标
@@ -65,10 +66,25 @@ type BlankItem struct {
 }
 
 // Init 表格坐标转化成遍历所需配置
-func Init(table [][]int, chengYuList []string) error {
+func Init(table [][]int, chengYuList []string, max ...int) error {
 	isValidTable := IsValidTemplate(table)
 	if !isValidTable {
 		return errors.New("表格模板非法！")
+	}
+	//变量初始化
+	tableXyStatus = make(map[string]int, 0) //坐标状态
+	formattedSetting = make([]Blank, 0)     //表格格式化后的遍历配置列表
+	sortedCyPos = make([]ChengYu, 0)        //成语位置出现顺序列表
+	sortedCyPosLen = 0                      //成语位置出现顺序列表长度
+	chengYuMap = make(map[string]bool)      //成语库map
+	allCY = make([]ChengYu, 0)              //所有成语位置列表
+	allCYLen = 0                            //所有成语位置列表长度
+	allLineCY = make([]ChengYu, 0)          //所有行中的成语位置列表
+	allColCY = make([]ChengYu, 0)           //所有列中的成语位置列表
+	maxResultCount = MaxResultCount
+
+	if len(max) > 0 && max[0] > 0 {
+		maxResultCount = max[0]
 	}
 	var setting []Blank
 	sortIndex := 0
@@ -245,7 +261,7 @@ func Check(ones []string) bool {
 
 func RecursionGenerate(depth int, selectedOnes []string, result map[string]bool, selectedMap map[string]bool) {
 
-	if len(result) > MaxResultCount-1 {
+	if len(result) > maxResultCount-1 {
 		return
 	}
 	onesMap := make(map[string]bool, 0)
@@ -327,7 +343,6 @@ ChengYuMapFor:
 // IsValidTemplate 判断模板是否合法：同一行/列 不能有多个成语相连或者重叠
 func IsValidTemplate(table [][]int) bool {
 	for _, item := range table {
-		fmt.Println(item)
 		count := 0
 		for _, val := range item {
 			if val == P9rNil {
