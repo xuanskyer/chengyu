@@ -4,10 +4,21 @@ import (
 	"fmt"
 	"github.com/chengyu/chengyu"
 	"os"
+	"runtime/pprof"
 	"time"
 )
 
 func main() {
+
+	//获取cpu profile
+	cpuFile, _ := os.OpenFile("cpu.prof", os.O_CREATE|os.O_RDWR, 0644)
+	defer cpuFile.Close()
+	pprof.StartCPUProfile(cpuFile)
+	defer pprof.StopCPUProfile()
+	//获取内存profile
+	memFile, _ := os.OpenFile("mem.prof", os.O_CREATE|os.O_RDWR, 0644)
+	defer memFile.Close()
+	pprof.WriteHeapProfile(memFile)
 	start := time.Now()
 	var ChengYuList = []string{
 		"门当户对", "声名狼藉", "时过境迁", "念念不忘",
@@ -42,14 +53,14 @@ func main() {
 	//demo2
 	table := [][]int{
 		{2, 2, 1, 2, 0, 0, 0, 0, 0},
-		{0, 0, 2, 2, 1, 2, 0, 0, 0},
-		{0, 0, 2, 0, 2, 0, 2, 0, 0},
-		{0, 0, 2, 0, 2, 2, 1, 2, 0},
+		{2, 0, 2, 2, 1, 2, 0, 0, 0},
+		{2, 0, 2, 0, 2, 0, 2, 0, 0},
+		{2, 0, 2, 0, 2, 2, 1, 2, 0},
 		{0, 0, 0, 0, 2, 0, 2, 0, 0},
-		{0, 0, 0, 2, 0, 1, 2, 1, 2},
-		{0, 0, 0, 2, 0, 2, 0, 2, 0},
-		{0, 0, 2, 1, 2, 1, 0, 2, 0},
-		{0, 0, 0, 2, 0, 2, 0, 2, 0},
+		{2, 0, 0, 2, 0, 1, 2, 1, 2},
+		{2, 0, 0, 2, 0, 2, 0, 2, 0},
+		{2, 0, 2, 1, 2, 1, 0, 2, 0},
+		{2, 2, 2, 2, 0, 2, 0, 2, 0},
 	}
 	//demo3
 	//table := [][]int{

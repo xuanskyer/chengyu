@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"unicode/utf8"
 )
 
 const (
@@ -192,21 +191,16 @@ func Init(table [][]int, chengYuList []string, max ...int) error {
 	return nil
 }
 
-func GetChengYuPosStr(begin, end int, item string) (string, error) {
+func GetChengYuPosRune(begin, end int, item string) (rune, error) {
 	if begin < 0 || end > 4 || begin > end || begin+1 != end {
-		return "", errors.New("位置非法")
+		return 0, errors.New("位置非法")
 	}
 	rs := []rune(item)
 	lth := len(rs)
 	if lth < end {
-		return "", errors.New("err")
+		return 0, errors.New("err")
 	}
-	han := string(rs[begin:end])
-	_, size := utf8.DecodeRuneInString(han)
-	if size != len(han) {
-		return "", errors.New("err: Invalid Chinese Characters")
-	}
-	return han, nil
+	return rs[begin:end][0], nil
 }
 
 func Check(ones []string) bool {
@@ -222,17 +216,17 @@ func Check(ones []string) bool {
 		return false
 	}
 
-	var c1, c2 string
+	var c1, c2 rune
 	var e1, e2 error
 	for index, info := range formattedSetting {
 		if len(info.HeadFoot) > 0 {
 			for _, val := range info.HeadFoot {
-				c1, e1 = GetChengYuPosStr(val.Head-1, val.Head, ones[val.HeadUseCyIndex])
-				c2, e2 = GetChengYuPosStr(val.Foot-1, val.Foot, ones[val.FootUseCyIndex])
+				c1, e1 = GetChengYuPosRune(val.Head-1, val.Head, ones[val.HeadUseCyIndex])
+				c2, e2 = GetChengYuPosRune(val.Foot-1, val.Foot, ones[val.FootUseCyIndex])
 				if e1 != nil || e2 != nil {
 					fmt.Println(e1, e2)
 				}
-				if c1 == "" || c2 == "" || c1 != c2 || e1 != nil || e2 != nil {
+				if c1 == 0 || c2 == 0 || c1 != c2 || e1 != nil || e2 != nil {
 					return false
 				}
 			}
@@ -246,12 +240,12 @@ func Check(ones []string) bool {
 					continue
 				}
 			}
-			c1, e1 = GetChengYuPosStr(info.Head-1, info.Head, ones[info.HeadUseCyIndex])
-			c2, e2 = GetChengYuPosStr(info.Foot-1, info.Foot, ones[info.FootUseCyIndex])
+			c1, e1 = GetChengYuPosRune(info.Head-1, info.Head, ones[info.HeadUseCyIndex])
+			c2, e2 = GetChengYuPosRune(info.Foot-1, info.Foot, ones[info.FootUseCyIndex])
 			if e1 != nil || e2 != nil {
 				fmt.Println(e1, e2)
 			}
-			if c1 == "" || c2 == "" || c1 != c2 || e1 != nil || e2 != nil {
+			if c1 == 0 || c2 == 0 || c1 != c2 || e1 != nil || e2 != nil {
 				return false
 			}
 		}
@@ -264,28 +258,27 @@ func RecursionGenerate(depth int, selectedOnes []string, result map[string]bool,
 	if len(result) > maxResultCount-1 {
 		return
 	}
-	onesMap := make(map[string]bool, 0)
-	for _, one := range selectedOnes {
-		onesMap[one] = true
-	}
-	if len(onesMap) != len(selectedOnes) {
-		return
-	}
+	//onesMap := make(map[string]bool, 0)
+	//for _, one := range selectedOnes {
+	//	onesMap[one] = true
+	//}
+	//if len(onesMap) != len(selectedOnes) {
+	//	return
+	//}
 	if len(selectedOnes) == allCYLen {
 		// 已填好所有空白处配置，判断所选成语序列是否符合条件
 		key := strings.Join(selectedOnes, ",")
 		_, ok := selectedMap[key]
 		if !ok {
 			if Check(selectedOnes) {
-				result[strings.Join(selectedOnes, ",")] = true
+				result[key] = true
 			}
-			key = strings.Join(selectedOnes, ",")
 			selectedMap[key] = true
 		}
 		return
 	}
 
-	var cell1, cell2 string
+	var cell1, cell2 rune
 	var err1, err2 error
 	// 处理当前递归层
 ChengYuMapFor:
@@ -298,9 +291,9 @@ ChengYuMapFor:
 			if len(blank.HeadFoot) > 0 {
 				hitCount := 0
 				for _, val := range blank.HeadFoot {
-					cell1, err1 = GetChengYuPosStr(val.Head-1, val.Head, selectedOnes[val.HeadUseCyIndex])
-					cell2, err2 = GetChengYuPosStr(val.Foot-1, val.Foot, c)
-					if err2 != nil || cell2 == "" || cell1 == "" || cell1 != cell2 || err1 != nil {
+					cell1, err1 = GetChengYuPosRune(val.Head-1, val.Head, selectedOnes[val.HeadUseCyIndex])
+					cell2, err2 = GetChengYuPosRune(val.Foot-1, val.Foot, c)
+					if err2 != nil || cell2 == 0 || cell1 == 0 || cell1 != cell2 || err1 != nil {
 						continue ChengYuMapFor
 					} else {
 						hitCount++
@@ -321,14 +314,14 @@ ChengYuMapFor:
 						continue
 					}
 				}
-				cell2, err2 = GetChengYuPosStr(blank.Foot-1, blank.Foot, c)
+				cell2, err2 = GetChengYuPosRune(blank.Foot-1, blank.Foot, c)
 
-				if err2 != nil || cell2 == "" {
+				if err2 != nil || cell2 == 0 {
 					continue
 				}
-				cell1, err1 = GetChengYuPosStr(blank.Head-1, blank.Head, selectedOnes[blank.HeadUseCyIndex])
+				cell1, err1 = GetChengYuPosRune(blank.Head-1, blank.Head, selectedOnes[blank.HeadUseCyIndex])
 
-				if cell1 == "" || cell2 == "" || cell1 != cell2 || err1 != nil || err2 != nil {
+				if cell1 == 0 || cell2 == 0 || cell1 != cell2 || err1 != nil || err2 != nil {
 					continue
 				}
 			}
@@ -343,6 +336,7 @@ ChengYuMapFor:
 // IsValidTemplate 判断模板是否合法：同一行/列 不能有多个成语相连或者重叠
 func IsValidTemplate(table [][]int) bool {
 	for _, item := range table {
+		fmt.Println(item)
 		count := 0
 		for _, val := range item {
 			if val == P9rNil {
@@ -404,20 +398,20 @@ func TableXyWordSet(cyStr string) ([TableMaxLen][TableMaxLen]string, error) {
 			continue
 		}
 		if tableXyWord[point[0].Y][point[0].X] == P9rUsedStr {
-			word1, _ := GetChengYuPosStr(0, 1, cy)
-			tableXyWord[point[0].Y][point[0].X] = word1
+			word1, _ := GetChengYuPosRune(0, 1, cy)
+			tableXyWord[point[0].Y][point[0].X] = string([]rune{word1})
 		}
 		if tableXyWord[point[1].Y][point[1].X] == P9rUsedStr {
-			word2, _ := GetChengYuPosStr(1, 2, cy)
-			tableXyWord[point[1].Y][point[1].X] = word2
+			word2, _ := GetChengYuPosRune(1, 2, cy)
+			tableXyWord[point[1].Y][point[1].X] = string([]rune{word2})
 		}
 		if tableXyWord[point[2].Y][point[2].X] == P9rUsedStr {
-			word3, _ := GetChengYuPosStr(2, 3, cy)
-			tableXyWord[point[2].Y][point[2].X] = word3
+			word3, _ := GetChengYuPosRune(2, 3, cy)
+			tableXyWord[point[2].Y][point[2].X] = string([]rune{word3})
 		}
 		if tableXyWord[point[3].Y][point[3].X] == P9rUsedStr {
-			word4, _ := GetChengYuPosStr(3, 4, cy)
-			tableXyWord[point[3].Y][point[3].X] = word4
+			word4, _ := GetChengYuPosRune(3, 4, cy)
+			tableXyWord[point[3].Y][point[3].X] = string([]rune{word4})
 		}
 	}
 	return tableXyWord, nil
